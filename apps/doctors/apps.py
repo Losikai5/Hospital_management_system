@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 
-
 class DoctorsConfig(AppConfig):
-    name = "doctors"
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.doctors'
+    label = 'doctors'
