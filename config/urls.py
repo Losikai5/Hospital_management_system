@@ -20,9 +20,16 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path,include
 
-urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/v1/auth/", include('apps.users.urls')),
-    path('api/v1/appointments/', include('apps.appointments.urls')),
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
-]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/v1/auth/', include('apps.users.urls')),
+    path('api/v1/appointments/', include('apps.appointments.urls')),
+    path('api/v1/medical-records/', include('apps.medical_records.urls')),
+    
+    # API documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

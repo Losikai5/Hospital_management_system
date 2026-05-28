@@ -54,8 +54,13 @@ INSTALLED_APPS = [
     "apps.doctors",
     "apps.appointments",
     "apps.medical_records",
+    
 ]
-
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Hospital Management System API',
+    'DESCRIPTION': 'API documentation for HMS',
+    'VERSION': '1.0.0',
+}
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

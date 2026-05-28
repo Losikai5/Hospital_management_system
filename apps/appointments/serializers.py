@@ -26,16 +26,9 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
                 "Appointment date cannot be in the past."
             )
         return value
-
     def create(self, validated_data):
-        """
-        Instead of directly saving to the DB, we call the service function
-        which runs all the business logic checks (schedule, conflicts, etc.)
-        before creating the appointment.
-        """
         request = self.context['request']
 
-        # Get the patient profile linked to the logged-in user
         try:
             patient = request.user.patient_profile
         except Exception:
@@ -43,14 +36,21 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
                 "You must have a patient profile to book an appointment."
             )
 
-        # Call the service function — this is where all the gate checks happen
-        appointment = book_appointment(
-            patient=patient,
-            doctor=validated_data['doctor'],
-            appointment_date=validated_data['appointment_date'],
-            appointment_time=validated_data['appointment_time'],
-            reason=validated_data.get('reason')
-        )
+        # Wrap the service call in a try/except so ValueError becomes
+        # a proper 400 response instead of a 500 crash
+        try:
+            appointment = book_appointment(
+                patient=patient,
+                doctor=validated_data['doctor'],
+                appointment_date=validated_data['appointment_date'],
+                appointment_time=validated_data['appointment_time'],
+                reason=validated_data.get('reason')
+            )
+        except ValueError as e:
+            # Convert the service layer's ValueError into a DRF ValidationError
+            # This gives the client a clean 400 Bad Request with the error message
+            raise serializers.ValidationError({'detail': str(e)})
+
         return appointment
 
 

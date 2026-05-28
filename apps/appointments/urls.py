@@ -5,21 +5,14 @@ from .views import (
     AppointmentDetailView,
     AppointmentCancelView,
     AppointmentCompleteView,
+    AvailableSlotsView,
 )
 
 urlpatterns = [
-    # A patient POSTs here to book a new appointment
     path('', AppointmentListView.as_view(), name='appointment-list'),
-    
-    # A patient POSTs here to book a new appointment
     path('book/', AppointmentCreateView.as_view(), name='appointment-book'),
-    
-    # View a single appointment by its ID
+    path('slots/', AvailableSlotsView.as_view(), name='available-slots'),
     path('<int:pk>/', AppointmentDetailView.as_view(), name='appointment-detail'),
-    
-    # A patient or admin POSTs here to cancel an appointment
     path('<int:pk>/cancel/', AppointmentCancelView.as_view(), name='appointment-cancel'),
-    
-    # A doctor POSTs here to mark an appointment as completed
     path('<int:pk>/complete/', AppointmentCompleteView.as_view(), name='appointment-complete'),
 ]

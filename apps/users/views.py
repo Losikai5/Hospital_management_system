@@ -20,6 +20,7 @@ class RegisterView(generics.CreateAPIView):
 
 
 class LoginView(APIView):
+    serializer_class = UserRegistrationSerializer 
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -63,6 +64,7 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileSerializer
 
     def post(self, request):
         try:
@@ -95,6 +97,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = ChangePasswordSerializer 
 
     def post(self, request):
         serializer = ChangePasswordSerializer(

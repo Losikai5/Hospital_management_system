@@ -3,117 +3,87 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from datetime import date
 from .models import Appointment, AppointmentStatus
 from .serializers import AppointmentCreateSerializer, AppointmentListSerializer
-from .services import cancel_appointment
-from apps.users.models import UserRole
+from .services import book_appointment, cancel_appointment, get_available_slots
+from apps.doctors.models import DoctorProfile
+from apps.core.permissions import (
+    IsPatient,
+    IsDoctor,
+    IsAdminOrReceptionist,
+    IsAppointmentOwner
+)
 
 
 class AppointmentCreateView(generics.CreateAPIView):
-    """
-    Only patients can book appointments.
-    The patient profile is pulled from the request inside the serializer.
-    """
+    """Only patients can book appointments."""
     serializer_class = AppointmentCreateSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_create(self, serializer):
-        # We check here that the logged-in user is actually a patient
-        # before the serializer even runs its create() method
-        if self.request.user.role != UserRole.PATIENT:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Only patients can book appointments.")
-        serializer.save()
+    permission_classes = [IsAuthenticated, IsPatient]
 
 
 class AppointmentListView(generics.ListAPIView):
-    """
-    This single view returns different results depending on who is asking.
-    - A patient sees only their own appointments
-    - A doctor sees only appointments assigned to them
-    - An admin or receptionist sees everything
-    """
+    """Role-aware list — each role sees only what they should."""
     serializer_class = AppointmentListSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # Guard for drf-spectacular schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return Appointment.objects.none()
+
         user = self.request.user
 
-        # Admin and receptionist see all appointments in the system
-        if user.role in [UserRole.ADMIN, UserRole.RECEPTIONIST]:
+        if user.role in ['ADMIN', 'RECEPTIONIST']:
             return Appointment.objects.all().select_related(
                 'doctor__user', 'patient__user'
             )
-
-        # A doctor only sees appointments where they are the assigned doctor
-        if user.role == UserRole.DOCTOR:
+        if user.role == 'DOCTOR':
             return Appointment.objects.filter(
                 doctor__user=user
             ).select_related('doctor__user', 'patient__user')
 
-        # A patient only sees their own appointments
-        if user.role == UserRole.PATIENT:
+        if user.role == 'PATIENT':
             return Appointment.objects.filter(
                 patient__user=user
             ).select_related('doctor__user', 'patient__user')
 
-        # If somehow none of the above match, return nothing
         return Appointment.objects.none()
 
 
 class AppointmentDetailView(generics.RetrieveAPIView):
-    """
-    View a single appointment by its ID.
-    The get_queryset logic ensures users can only see
-    appointments they are allowed to access.
-    """
+    """View a single appointment — ownership checked by IsAppointmentOwner."""
     serializer_class = AppointmentListSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAppointmentOwner]
 
     def get_queryset(self):
-        user = self.request.user
-
-        if user.role in [UserRole.ADMIN, UserRole.RECEPTIONIST]:
-            return Appointment.objects.all()
-
-        if user.role == UserRole.DOCTOR:
-            return Appointment.objects.filter(doctor__user=user)
-
-        if user.role == UserRole.PATIENT:
-            return Appointment.objects.filter(patient__user=user)
-
-        return Appointment.objects.none()
+        return Appointment.objects.all().select_related(
+            'doctor__user', 'patient__user'
+        )
 
 
 class AppointmentCancelView(APIView):
-    """
-    A patient can cancel their own appointment.
-    An admin or receptionist can cancel any appointment.
-    A doctor cannot cancel — they can only mark as completed.
-    """
+    """Cancel an appointment — patients cancel their own, admins cancel any."""
     permission_classes = [IsAuthenticated]
+    serializer_class = AppointmentListSerializer
 
     def post(self, request, pk):
         appointment = get_object_or_404(Appointment, pk=pk)
         user = request.user
 
-        # Check the user has permission to cancel this specific appointment
-        if user.role == UserRole.PATIENT:
-            # Patient can only cancel their own appointments
+        if user.role == 'DOCTOR':
+            return Response(
+                {'error': 'Doctors cannot cancel appointments.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if user.role == 'PATIENT':
             if appointment.patient.user != user:
                 return Response(
                     {'error': 'You can only cancel your own appointments.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        elif user.role == UserRole.DOCTOR:
-            # Doctors cannot cancel appointments
-            return Response(
-                {'error': 'Doctors cannot cancel appointments.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # Run the service function which validates the cancellation rules
         try:
             cancel_appointment(appointment, cancelled_by=user)
             return Response(
@@ -121,8 +91,6 @@ class AppointmentCancelView(APIView):
                 status=status.HTTP_200_OK
             )
         except ValueError as e:
-            # The service raises ValueError for business rule violations
-            # The view catches it and converts it to a proper HTTP response
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
@@ -130,27 +98,15 @@ class AppointmentCancelView(APIView):
 
 
 class AppointmentCompleteView(APIView):
-    """
-    Only a doctor can mark their own appointment as completed.
-    This would typically happen at the end of a consultation.
-    """
-    permission_classes = [IsAuthenticated]
+    """Only a doctor can mark their own appointment as completed."""
+    permission_classes = [IsAuthenticated, IsDoctor]
+    serializer_class = AppointmentListSerializer
 
     def post(self, request, pk):
-        user = request.user
-
-        # Only doctors can access this endpoint
-        if user.role != UserRole.DOCTOR:
-            return Response(
-                {'error': 'Only doctors can mark appointments as completed.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # Fetch the appointment and make sure it belongs to this doctor
         appointment = get_object_or_404(
             Appointment,
             pk=pk,
-            doctor__user=user  # double underscore — traverse to the doctor's user
+            doctor__user=request.user
         )
 
         if appointment.status != AppointmentStatus.CONFIRMED:
@@ -166,3 +122,36 @@ class AppointmentCompleteView(APIView):
             {'message': 'Appointment marked as completed.'},
             status=status.HTTP_200_OK
         )
+
+
+class AvailableSlotsView(APIView):
+    """Return available time slots for a doctor on a given date."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = AppointmentListSerializer
+
+    def get(self, request):
+        doctor_id = request.query_params.get('doctor_id')
+        date_str = request.query_params.get('date')
+
+        if not doctor_id or not date_str:
+            return Response(
+                {'error': 'Both doctor_id and date are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            appointment_date = date.fromisoformat(date_str)
+        except ValueError:
+            return Response(
+                {'error': 'Invalid date format. Use YYYY-MM-DD.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        doctor = get_object_or_404(DoctorProfile, pk=doctor_id)
+        slots = get_available_slots(doctor, appointment_date)
+
+        return Response({
+            'doctor_id': doctor_id,
+            'date': date_str,
+            'available_slots': [slot.strftime('%H:%M') for slot in slots]
+        })

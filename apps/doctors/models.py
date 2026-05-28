@@ -45,19 +45,23 @@ class DayOfWeek(models.IntegerChoices):
     SATURDAY = 5, _('Saturday')
     SUNDAY = 6, _('Sunday')
 class DoctorSchedule(models.Model):
-     doctor = models.ForeignKey('doctors.DoctorProfile',on_delete=models.CASCADE,related_name='schedules')
-     day_of_week = models.PositiveSmallIntegerField(choices=DayOfWeek.choices)
-     start_time = models.TimeField()
-     end_time = models.TimeField()
-     session_duration = models.PositiveIntegerField(default=30,validators=[MinValueValidator(1)],help_text="Duration in minutes")
-     is_avaiable = models.BooleanField(default=True)
-     class Meta:
+    doctor = models.ForeignKey('doctors.DoctorProfile', on_delete=models.CASCADE, related_name='schedules')
+    day_of_week = models.PositiveSmallIntegerField(choices=DayOfWeek.choices)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    session_duration = models.PositiveIntegerField(
+        default=30,
+        validators=[MinValueValidator(1)],
+        help_text="Duration in minutes"
+    )
+    is_available = models.BooleanField(default=True)  # fixed typo
+
+    class Meta:
         verbose_name = _('Doctor Schedule')
         verbose_name_plural = _('Doctor Schedules')
         unique_together = ['doctor', 'day_of_week']
         ordering = ['day_of_week', 'start_time']
 
-        def __str__(self):
-          return f"Dr. {self.doctor.user.email} - {self.get_day_of_week_display()} {self.start_time} to {self.end_time}"
-        
-
+    
+    def __str__(self):
+        return f"Dr. {self.doctor.user.email} - {self.get_day_of_week_display()} {self.start_time} to {self.end_time}"
