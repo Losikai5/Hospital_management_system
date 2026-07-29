@@ -78,3 +78,23 @@ class IsAppointmentOwner(BasePermission):
             return obj.patient.user == user
 
         return False
+class IsPharmacist(BasePermission):
+    """Allows access only to users with the PHARMACIST role."""
+
+    def has_permission(self, request, view):
+        return (
+            request.user and
+            request.user.is_authenticated and
+            request.user.role == UserRole.PHARMACIST
+        )
+
+
+class IsAdminOrPharmacist(BasePermission):
+    """Allows access to both ADMIN and PHARMACIST roles."""
+
+    def has_permission(self, request, view):
+        return (
+            request.user and
+            request.user.is_authenticated and
+            request.user.role in [UserRole.ADMIN, UserRole.PHARMACIST]
+        )    

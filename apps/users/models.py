@@ -4,10 +4,11 @@ from django.utils.translation import gettext_lazy as _
 
 
 class UserRole(models.TextChoices):
-    PATIENT = "PATIENT", _("Patient")
-    DOCTOR = "DOCTOR", _("Doctor")
-    ADMIN = "ADMIN", _("Admin")
+    PATIENT      = "PATIENT",      _("Patient")
+    DOCTOR       = "DOCTOR",       _("Doctor")
+    ADMIN        = "ADMIN",        _("Admin")
     RECEPTIONIST = "RECEPTIONIST", _("Receptionist")
+    PHARMACIST   = "PHARMACIST",   _("Pharmacist")  
 
 
 class CustomUserManager(BaseUserManager):
