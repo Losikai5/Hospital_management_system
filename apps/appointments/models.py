@@ -42,7 +42,17 @@ class Appointment(models.Model):
         verbose_name = _('Appointment')
         verbose_name_plural = _('Appointments')
         ordering = ['-appointment_date', '-appointment_time']
-        unique_together = ['doctor', 'appointment_date', 'appointment_time']
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    'doctor',
+                    'appointment_date',
+                    'appointment_time',
+                ],
+                condition=~models.Q(status=AppointmentStatus.CANCELLED),
+                name='unique_non_cancelled_doctor_appointment_slot',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.patient} with Dr. {self.doctor.user.email} - {self.appointment_date} {self.appointment_time}"
