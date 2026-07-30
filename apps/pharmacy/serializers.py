@@ -51,6 +51,14 @@ class PrescriptionCreateSerializer(serializers.ModelSerializer):
         # The doctor should not be able to manipulate any of these
 
 
+    def validate_medical_record(self, value):
+        request = self.context.get("request")
+        if request and value.appointment.doctor.user_id != request.user.id:
+            raise serializers.ValidationError(
+                "You can only prescribe for your own medical records."
+            )
+        return value
+
 class PrescriptionListSerializer(serializers.ModelSerializer):
     # Edit 4: Replaced raw ForeignKey fields with readable source fields
     # Reason: Without source, medicine and medical_record would just

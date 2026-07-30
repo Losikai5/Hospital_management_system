@@ -5,12 +5,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth import authenticate
+from .emails import send_staff_invitation_email
+from .service import StaffInvitationAcceptanceError, create_staff_invitation,accept_staff_invitation
+from apps.core.permissions import HasCustomPermission
 from .models import CustomUser
-from .serializers import (
-    UserRegistrationSerializer,
-    UserProfileSerializer,
-    ChangePasswordSerializer
-)
+from .serializers import ( UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, StaffInvitationSerializer,StaffInvitationAcceptSerializer,)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -57,7 +56,7 @@ class LoginView(APIView):
             'user': {
                 'id': user.id,
                 'email': user.email,
-                'role': user.role,
+                'role': user.role_code,
             }
         }, status=status.HTTP_200_OK)
 
@@ -114,3 +113,74 @@ class ChangePasswordView(APIView):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
+
+class StaffInvitationView(APIView):
+    permission_classes = [HasCustomPermission]
+    serializer_class = StaffInvitationSerializer
+    required_permissions = (
+        "can_create_users",
+        "can_assign_roles",
+    )
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        invitation, token = create_staff_invitation(
+            email=serializer.validated_data["email"],
+            role=serializer.validated_data["role"],
+            invited_by=request.user,
+        )
+
+        send_staff_invitation_email(
+            invitation=invitation,
+            token=token,
+        )
+
+        return Response(
+            {
+                "message": "Staff invitation created successfully.",
+                "invitation": {
+                    "id": invitation.id,
+                    "email": invitation.user.email,
+                    "role": invitation.user.role.code,
+                    "invited_by": invitation.invited_by.email,
+                    "expires_at": invitation.expires_at,
+                },
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+class StaffInvitationAcceptView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = StaffInvitationAcceptSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            user = accept_staff_invitation(
+                token=serializer.validated_data["token"],
+                password=serializer.validated_data["password"],
+            )   
+        except StaffInvitationAcceptanceError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(
+            {
+                "message": "Staff invitation accepted successfully.",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "role": user.role.code,
+                    "is_active": user.is_active,
+                    "is_verified": user.is_verified,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )    
+

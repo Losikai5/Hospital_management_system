@@ -1,0 +1,215 @@
+{
+  "User Management": [
+    {
+      "code": "can_view_users",
+      "name": "Can View Users",
+      "description": "Allows viewing user accounts permitted by ownership rules."
+    },
+    {
+      "code": "can_view_all_users",
+      "name": "Can View All Users",
+      "description": "Allows viewing all user accounts."
+    },
+    {
+      "code": "can_create_users",
+      "name": "Can Create Users",
+      "description": "Allows creating user accounts."
+    },
+    {
+      "code": "can_edit_users",
+      "name": "Can Edit Users",
+      "description": "Allows editing user accounts permitted by ownership rules."
+    }
+  ],
+  "Role Management": [
+    {
+      "code": "can_view_roles",
+      "name": "Can View Roles",
+      "description": "Allows viewing roles."
+    },
+    {
+      "code": "can_create_roles",
+      "name": "Can Create Roles",
+      "description": "Allows creating roles."
+    },
+    {
+      "code": "can_edit_roles",
+      "name": "Can Edit Roles",
+      "description": "Allows editing role information."
+    },
+    {
+      "code": "can_assign_roles",
+      "name": "Can Assign Roles",
+      "description": "Allows assigning roles to user accounts."
+    }
+  ],
+  "Permission Management": [
+    {
+      "code": "can_view_permissions",
+      "name": "Can View Permissions",
+      "description": "Allows viewing available permissions."
+    },
+    {
+      "code": "can_assign_permissions",
+      "name": "Can Assign Permissions",
+      "description": "Allows assigning permissions to roles."
+    }
+  ],
+  "Patient Management": [
+    {
+      "code": "can_view_patients",
+      "name": "Can View Patients",
+      "description": "Allows viewing patient profiles permitted by ownership rules."
+    },
+    {
+      "code": "can_view_all_patients",
+      "name": "Can View All Patients",
+      "description": "Allows viewing all patient profiles."
+    },
+    {
+      "code": "can_create_patients",
+      "name": "Can Create Patients",
+      "description": "Allows creating patient profiles."
+    },
+    {
+      "code": "can_edit_patients",
+      "name": "Can Edit Patients",
+      "description": "Allows editing patient profiles permitted by ownership rules."
+    }
+  ],
+  "Doctor Management": [
+    {
+      "code": "can_view_doctors",
+      "name": "Can View Doctors",
+      "description": "Allows viewing doctor profiles."
+    },
+    {
+      "code": "can_view_all_doctors",
+      "name": "Can View All Doctors",
+      "description": "Allows viewing all doctor profiles, including inactive profiles."
+    },
+    {
+      "code": "can_create_doctors",
+      "name": "Can Create Doctors",
+      "description": "Allows creating doctor profiles."
+    },
+    {
+      "code": "can_edit_doctors",
+      "name": "Can Edit Doctors",
+      "description": "Allows editing doctor profiles permitted by ownership rules."
+    },
+    {
+      "code": "can_manage_doctor_schedules",
+      "name": "Can Manage Doctor Schedules",
+      "description": "Allows creating and updating doctor schedules permitted by ownership rules."
+    }
+  ],
+  "Appointment Management": [
+    {
+      "code": "can_view_appointments",
+      "name": "Can View Appointments",
+      "description": "Allows viewing appointments permitted by ownership rules."
+    },
+    {
+      "code": "can_view_all_appointments",
+      "name": "Can View All Appointments",
+      "description": "Allows viewing all appointments."
+    },
+    {
+      "code": "can_create_appointments",
+      "name": "Can Create Appointments",
+      "description": "Allows booking appointments for permitted patients."
+    },
+    {
+      "code": "can_confirm_appointments",
+      "name": "Can Confirm Appointments",
+      "description": "Allows confirming pending appointments."
+    },
+    {
+      "code": "can_cancel_appointments",
+      "name": "Can Cancel Appointments",
+      "description": "Allows cancelling appointments permitted by ownership rules."
+    },
+    {
+      "code": "can_complete_appointments",
+      "name": "Can Complete Appointments",
+      "description": "Allows marking assigned confirmed appointments as completed."
+    }
+  ],
+  "Medical Record Management": [
+    {
+      "code": "can_view_medical_records",
+      "name": "Can View Medical Records",
+      "description": "Allows viewing medical records permitted by ownership rules."
+    },
+    {
+      "code": "can_view_all_medical_records",
+      "name": "Can View All Medical Records",
+      "description": "Allows viewing all medical records."
+    },
+    {
+      "code": "can_create_medical_records",
+      "name": "Can Create Medical Records",
+      "description": "Allows creating medical records for assigned completed appointments."
+    },
+    {
+      "code": "can_edit_medical_records",
+      "name": "Can Edit Medical Records",
+      "description": "Allows editing medical records permitted by ownership rules."
+    }
+  ],
+  "Medicine Management": [
+    {
+      "code": "can_view_medicines",
+      "name": "Can View Medicines",
+      "description": "Allows viewing active medicines."
+    },
+    {
+      "code": "can_view_all_medicines",
+      "name": "Can View All Medicines",
+      "description": "Allows viewing all medicines, including inactive medicines."
+    },
+    {
+      "code": "can_create_medicines",
+      "name": "Can Create Medicines",
+      "description": "Allows adding medicines to the pharmacy inventory."
+    },
+    {
+      "code": "can_edit_medicines",
+      "name": "Can Edit Medicines",
+      "description": "Allows updating medicine details and stock levels."
+    },
+    {
+      "code": "can_deactivate_medicines",
+      "name": "Can Deactivate Medicines",
+      "description": "Allows deactivating discontinued medicines."
+    }
+  ],
+  "Prescription Management": [
+    {
+      "code": "can_view_prescriptions",
+      "name": "Can View Prescriptions",
+      "description": "Allows viewing prescriptions permitted by ownership rules."
+    },
+    {
+      "code": "can_view_all_prescriptions",
+      "name": "Can View All Prescriptions",
+      "description": "Allows viewing all prescriptions."
+    },
+    {
+      "code": "can_create_prescriptions",
+      "name": "Can Create Prescriptions",
+      "description": "Allows creating prescriptions for assigned medical records."
+    },
+    {
+      "code": "can_dispense_prescriptions",
+      "name": "Can Dispense Prescriptions",
+      "description": "Allows dispensing pending prescriptions and deducting medicine stock."
+    },
+    {
+      "code": "can_cancel_prescriptions",
+      "name": "Can Cancel Prescriptions",
+      "description": "Allows cancelling pending prescriptions permitted by ownership rules."
+    }
+  ]
+}

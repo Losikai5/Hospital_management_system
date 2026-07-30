@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 class UnitType(models.TextChoices):
     # Edit 1: Changed unit_type from plain CharField to TextChoices
-    # Reason: Consistent with the rest of the project — UserRole,
+    # Reason: Consistent with the rest of the project.
     # AppointmentStatus all use TextChoices. This prevents invalid
     # unit types from being saved and gives you readable labels
     # in the admin panel.

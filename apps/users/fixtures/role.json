@@ -1,0 +1,39 @@
+{
+  "roles": [
+    {
+      "code": "ADMIN",
+      "name": "Administrator",
+      "description": "Manages the hospital system and has access to all permissions.",
+      "is_active": true,
+      "is_system": true
+    },
+    {
+      "code": "DOCTOR",
+      "name": "Doctor",
+      "description": "Manages assigned appointments, medical records, and prescriptions.",
+      "is_active": true,
+      "is_system": true
+    },
+    {
+      "code": "PATIENT",
+      "name": "Patient",
+      "description": "Books appointments and views personal medical information.",
+      "is_active": true,
+      "is_system": true
+    },
+    {
+      "code": "RECEPTIONIST",
+      "name": "Receptionist",
+      "description": "Coordinates patients, doctors, and appointment scheduling.",
+      "is_active": true,
+      "is_system": true
+    },
+    {
+      "code": "PHARMACIST",
+      "name": "Pharmacist",
+      "description": "Manages medicine inventory and dispenses prescriptions.",
+      "is_active": true,
+      "is_system": true
+    }
+  ]
+}

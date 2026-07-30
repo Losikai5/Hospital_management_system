@@ -1,7 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from datetime import date
 from .models import Appointment, AppointmentStatus
@@ -9,23 +8,23 @@ from .serializers import AppointmentCreateSerializer, AppointmentListSerializer
 from .services import book_appointment, cancel_appointment, get_available_slots
 from apps.doctors.models import DoctorProfile
 from apps.core.permissions import (
-    IsPatient,
-    IsDoctor,
-    IsAdminOrReceptionist,
+    HasCustomPermission,
     IsAppointmentOwner
 )
 
 
 class AppointmentCreateView(generics.CreateAPIView):
-    """Only patients can book appointments."""
+    """Users with the appointment creation permission can book appointments."""
     serializer_class = AppointmentCreateSerializer
-    permission_classes = [IsAuthenticated, IsPatient]
+    permission_classes = [HasCustomPermission]
+    required_permission = 'can_create_appointments'
 
 
 class AppointmentListView(generics.ListAPIView):
     """Role-aware list — each role sees only what they should."""
     serializer_class = AppointmentListSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasCustomPermission]
+    required_permission = 'can_view_appointments'
 
     def get_queryset(self):
         # Guard for drf-spectacular schema generation
@@ -34,16 +33,16 @@ class AppointmentListView(generics.ListAPIView):
 
         user = self.request.user
 
-        if user.role in ['ADMIN', 'RECEPTIONIST']:
+        if user.has_permission('can_view_all_appointments'):
             return Appointment.objects.all().select_related(
                 'doctor__user', 'patient__user'
             )
-        if user.role == 'DOCTOR':
+        if user.role_code == 'DOCTOR':
             return Appointment.objects.filter(
                 doctor__user=user
             ).select_related('doctor__user', 'patient__user')
 
-        if user.role == 'PATIENT':
+        if user.role_code == 'PATIENT':
             return Appointment.objects.filter(
                 patient__user=user
             ).select_related('doctor__user', 'patient__user')
@@ -54,7 +53,8 @@ class AppointmentListView(generics.ListAPIView):
 class AppointmentDetailView(generics.RetrieveAPIView):
     """View a single appointment — ownership checked by IsAppointmentOwner."""
     serializer_class = AppointmentListSerializer
-    permission_classes = [IsAuthenticated, IsAppointmentOwner]
+    permission_classes = [HasCustomPermission, IsAppointmentOwner]
+    required_permission = 'can_view_appointments'
 
     def get_queryset(self):
         return Appointment.objects.all().select_related(
@@ -64,25 +64,14 @@ class AppointmentDetailView(generics.RetrieveAPIView):
 
 class AppointmentCancelView(APIView):
     """Cancel an appointment — patients cancel their own, admins cancel any."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasCustomPermission, IsAppointmentOwner]
+    required_permission = 'can_cancel_appointments'
     serializer_class = AppointmentListSerializer
 
     def post(self, request, pk):
         appointment = get_object_or_404(Appointment, pk=pk)
+        self.check_object_permissions(request, appointment)
         user = request.user
-
-        if user.role == 'DOCTOR':
-            return Response(
-                {'error': 'Doctors cannot cancel appointments.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        if user.role == 'PATIENT':
-            if appointment.patient.user != user:
-                return Response(
-                    {'error': 'You can only cancel your own appointments.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
 
         try:
             cancel_appointment(appointment, cancelled_by=user)
@@ -97,9 +86,35 @@ class AppointmentCancelView(APIView):
             )
 
 
+class AppointmentConfirmView(APIView):
+    """Confirm a pending appointment."""
+    permission_classes = [HasCustomPermission, IsAppointmentOwner]
+    required_permission = 'can_confirm_appointments'
+    serializer_class = AppointmentListSerializer
+
+    def post(self, request, pk):
+        appointment = get_object_or_404(Appointment, pk=pk)
+        self.check_object_permissions(request, appointment)
+
+        if appointment.status != AppointmentStatus.PENDING:
+            return Response(
+                {'error': 'Only pending appointments can be confirmed.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        appointment.status = AppointmentStatus.CONFIRMED
+        appointment.save(update_fields=['status', 'updated_at'])
+
+        return Response(
+            {'message': 'Appointment confirmed successfully.'},
+            status=status.HTTP_200_OK
+        )
+
+
 class AppointmentCompleteView(APIView):
-    """Only a doctor can mark their own appointment as completed."""
-    permission_classes = [IsAuthenticated, IsDoctor]
+    """Complete an assigned confirmed appointment."""
+    permission_classes = [HasCustomPermission]
+    required_permission = 'can_complete_appointments'
     serializer_class = AppointmentListSerializer
 
     def post(self, request, pk):
@@ -116,17 +131,17 @@ class AppointmentCompleteView(APIView):
             )
 
         appointment.status = AppointmentStatus.COMPLETED
-        appointment.save()
+        appointment.save(update_fields=['status', 'updated_at'])
 
         return Response(
             {'message': 'Appointment marked as completed.'},
             status=status.HTTP_200_OK
         )
 
-
 class AvailableSlotsView(APIView):
     """Return available time slots for a doctor on a given date."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasCustomPermission]
+    required_permission = 'can_view_doctors'
     serializer_class = AppointmentListSerializer
 
     def get(self, request):

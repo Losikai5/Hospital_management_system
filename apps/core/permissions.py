@@ -1,100 +1,60 @@
 from rest_framework.permissions import BasePermission
-from apps.users.models import UserRole
 
 
-class IsDoctor(BasePermission):
-    """Allows access only to users with the DOCTOR role."""
+class HasCustomPermission(BasePermission):
+    message = "You do not have permission to perform this action."
 
     def has_permission(self, request, view):
-        return (
-            request.user and
-            request.user.is_authenticated and
-            request.user.role == UserRole.DOCTOR
+        user = request.user
+
+        if not user or not user.is_authenticated:
+            return False
+
+        permissions_by_method = getattr(
+            view,
+            "required_permissions_by_method",
+            None,
         )
 
+        if permissions_by_method is not None:
+            permission_codes = permissions_by_method.get(request.method)
+        else:
+            permission_codes = getattr(view, "required_permissions", None)
 
-class IsPatient(BasePermission):
-    """Allows access only to users with the PATIENT role."""
+            if permission_codes is None:
+                permission_code = getattr(
+                    view,
+                    "required_permission",
+                    None,
+                )
+                permission_codes = (
+                    (permission_code,)
+                    if permission_code
+                    else ()
+                )
+        if isinstance(permission_codes, str):
+            permission_codes = (permission_codes,)
 
-    def has_permission(self, request, view):
-        return (
-            request.user and
-            request.user.is_authenticated and
-            request.user.role == UserRole.PATIENT
-        )
+        if not permission_codes:
+            return False
 
-
-class IsAdminUser(BasePermission):
-    """Allows access only to users with the ADMIN role."""
-
-    def has_permission(self, request, view):
-        return (
-            request.user and
-            request.user.is_authenticated and
-            request.user.role == UserRole.ADMIN
-        )
-
-
-class IsReceptionist(BasePermission):
-    """Allows access only to users with the RECEPTIONIST role."""
-
-    def has_permission(self, request, view):
-        return (
-            request.user and
-            request.user.is_authenticated and
-            request.user.role == UserRole.RECEPTIONIST
-        )
-
-
-class IsAdminOrReceptionist(BasePermission):
-    """Allows access to both ADMIN and RECEPTIONIST roles."""
-
-    def has_permission(self, request, view):
-        return (
-            request.user and
-            request.user.is_authenticated and
-            request.user.role in [UserRole.ADMIN, UserRole.RECEPTIONIST]
+        return all(
+            user.has_permission(permission_code)
+            for permission_code in permission_codes
         )
 
 
 class IsAppointmentOwner(BasePermission):
-    """
-    Object-level permission for appointments.
-    - Admin and Receptionist can access any appointment
-    - Doctor can only access their own appointments
-    - Patient can only access their own appointments
-    """
-
     def has_object_permission(self, request, view, obj):
         user = request.user
 
-        if user.role in [UserRole.ADMIN, UserRole.RECEPTIONIST]:
+        if user.has_permission("can_view_all_appointments"):
             return True
 
-        if user.role == UserRole.DOCTOR:
-            return obj.doctor.user == user
+        if obj.doctor.user_id == user.id:
+            return True
 
-        if user.role == UserRole.PATIENT:
-            return obj.patient.user == user
+        if obj.patient.user_id == user.id:
+            return True
 
         return False
-class IsPharmacist(BasePermission):
-    """Allows access only to users with the PHARMACIST role."""
-
-    def has_permission(self, request, view):
-        return (
-            request.user and
-            request.user.is_authenticated and
-            request.user.role == UserRole.PHARMACIST
-        )
-
-
-class IsAdminOrPharmacist(BasePermission):
-    """Allows access to both ADMIN and PHARMACIST roles."""
-
-    def has_permission(self, request, view):
-        return (
-            request.user and
-            request.user.is_authenticated and
-            request.user.role in [UserRole.ADMIN, UserRole.PHARMACIST]
-        )    
