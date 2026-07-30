@@ -6,7 +6,123 @@ from rest_framework import serializers
 from apps.users.models import CustomUser
 from apps.users.serializers import UserProfileSerializer
 
-from .models import DoctorProfile
+from .models import DoctorProfile, DoctorSchedule
+
+
+class DoctorDirectorySerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(
+        source="user.first_name",
+        read_only=True,
+    )
+    last_name = serializers.CharField(
+        source="user.last_name",
+        read_only=True,
+    )
+    profile_picture = serializers.ImageField(
+        source="user.profile_picture",
+        read_only=True,
+    )
+    specialization_display = serializers.CharField(
+        source="get_specialization_display",
+        read_only=True,
+    )
+
+    class Meta:
+        model = DoctorProfile
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "profile_picture",
+            "specialization",
+            "specialization_display",
+            "years_of_experience",
+            "bio",
+            "consultation_fee",
+            "is_available",
+        ]
+        read_only_fields = fields
+
+
+class DoctorScheduleSerializer(serializers.ModelSerializer):
+    day_of_week_display = serializers.CharField(
+        source="get_day_of_week_display",
+        read_only=True,
+    )
+
+    class Meta:
+        model = DoctorSchedule
+        fields = [
+            "id",
+            "day_of_week",
+            "day_of_week_display",
+            "start_time",
+            "end_time",
+            "session_duration",
+            "is_available",
+        ]
+        read_only_fields = [
+            "id",
+            "day_of_week_display",
+        ]
+
+    def validate(self, attrs):
+        start_time = attrs.get(
+            "start_time",
+            getattr(self.instance, "start_time", None),
+        )
+        end_time = attrs.get(
+            "end_time",
+            getattr(self.instance, "end_time", None),
+        )
+        session_duration = attrs.get(
+            "session_duration",
+            getattr(self.instance, "session_duration", 30),
+        )
+
+        if start_time and end_time and start_time >= end_time:
+            raise serializers.ValidationError(
+                {"end_time": "End time must be later than start time."}
+            )
+
+        if start_time and end_time:
+            start_minutes = start_time.hour * 60 + start_time.minute
+            end_minutes = end_time.hour * 60 + end_time.minute
+
+            if session_duration > end_minutes - start_minutes:
+                raise serializers.ValidationError(
+                    {
+                        "session_duration": (
+                            "Session duration must fit within working hours."
+                        )
+                    }
+                )
+
+        request = self.context.get("request")
+        day_of_week = attrs.get(
+            "day_of_week",
+            getattr(self.instance, "day_of_week", None),
+        )
+
+        if request and day_of_week is not None:
+            schedules = DoctorSchedule.objects.filter(
+                doctor__user=request.user,
+                day_of_week=day_of_week,
+            )
+
+            if self.instance:
+                schedules = schedules.exclude(pk=self.instance.pk)
+
+            if schedules.exists():
+                raise serializers.ValidationError(
+                    {
+                        "day_of_week": (
+                            "You already have a schedule for this day."
+                        )
+                    }
+                )
+
+        return attrs
 
 
 class DoctorOnboardingSerializer(serializers.ModelSerializer):
