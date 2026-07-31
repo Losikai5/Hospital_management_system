@@ -14,6 +14,8 @@
       "can_edit_doctors",
       "can_manage_doctor_schedules",
       "can_view_appointments",
+      "can_confirm_appointments",
+      "can_cancel_appointments",
       "can_complete_appointments",
       "can_view_medical_records",
       "can_create_medical_records",
@@ -53,7 +55,6 @@
       "can_view_appointments",
       "can_view_all_appointments",
       "can_create_appointments",
-      "can_confirm_appointments",
       "can_cancel_appointments"
     ]
   },
