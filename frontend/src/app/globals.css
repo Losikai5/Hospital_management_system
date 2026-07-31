@@ -136,3 +136,22 @@
 .bg-plus-grid-invert {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M18 13v10M13 18h10' stroke='%23ffffff' stroke-opacity='0.12' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
 }
+
+/* Card entrance — never leaves the element invisible (defaults to opacity 1;
+   only animates when motion is allowed), so it is safe under reduced-motion and
+   if the animation never runs. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .animate-rise {
+    animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}

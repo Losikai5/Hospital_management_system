@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { BrandPanel } from "@/components/auth/brand-panel";
+import { AuthBackdrop } from "@/components/auth/auth-backdrop";
 import { Logo } from "@/components/brand/logo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -18,20 +18,20 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, [isLoading, isAuthenticated, router]);
 
   return (
-    <div className="grid min-h-[100dvh] lg:grid-cols-2">
-      <BrandPanel className="hidden lg:flex" />
+    <div className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-stone-50 px-4 py-10">
+      <AuthBackdrop />
 
-      <div className="flex flex-col px-5 py-8 sm:px-8">
-        {/* Brand mark for narrow screens (the emerald panel is hidden there) */}
-        <div className="flex justify-center lg:hidden">
-          <Logo />
+      <div className="animate-rise relative z-10 w-full max-w-md">
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
+          <Logo href="/" />
+          <p className="text-sm text-muted-foreground">One calm system for the whole hospital.</p>
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-10">
-          <div className="w-full max-w-[25rem]">{children}</div>
+        <div className="rounded-2xl border border-stone-200/80 bg-white/90 p-8 shadow-[0_24px_70px_-24px_rgba(6,78,59,0.28)] backdrop-blur-sm">
+          {children}
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="mt-6 text-center text-xs text-muted-foreground">
           {`© ${new Date().getFullYear()} Serenity Health · Secure hospital management`}
         </p>
       </div>

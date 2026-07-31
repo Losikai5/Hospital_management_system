@@ -5,11 +5,14 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth import authenticate
-from .emails import send_staff_invitation_email
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from .emails import send_staff_invitation_email, send_password_reset_email
 from .service import StaffInvitationAcceptanceError, create_staff_invitation,accept_staff_invitation
 from apps.core.permissions import HasCustomPermission
 from .models import CustomUser
-from .serializers import ( UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, StaffInvitationSerializer,StaffInvitationAcceptSerializer,)
+from .serializers import ( UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, StaffInvitationSerializer,StaffInvitationAcceptSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer,)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -113,6 +116,49 @@ class ChangePasswordView(APIView):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
+
+class PasswordResetRequestView(APIView):
+    """Public: emails a reset link. Always returns 200 so it never reveals
+    whether an email is registered."""
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = CustomUser.objects.normalize_email(serializer.validated_data["email"])
+        user = CustomUser.objects.filter(email__iexact=email, is_active=True).first()
+
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            try:
+                send_password_reset_email(user=user, uid=uid, token=token)
+            except Exception:
+                # Never surface send failures (would leak which emails exist).
+                pass
+
+        return Response(
+            {"message": "If an account exists for that email, a reset link has been sent."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """Public: sets a new password given a valid uid + token."""
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "Password reset successful. You can now sign in."},
+            status=status.HTTP_200_OK,
+        )
+
 
 class StaffInvitationView(APIView):
     permission_classes = [HasCustomPermission]

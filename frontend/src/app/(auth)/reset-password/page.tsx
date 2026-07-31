@@ -13,7 +13,7 @@ import { PasswordField } from "@/components/auth/password-field";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { apiRequest } from "@/lib/api-client";
 
-const acceptSchema = z
+const schema = z
   .object({
     password: z
       .string()
@@ -27,7 +27,7 @@ const acceptSchema = z
     path: ["confirmPassword"],
   });
 
-type AcceptForm = z.infer<typeof acceptSchema>;
+type Form = z.infer<typeof schema>;
 
 function InvalidLink() {
   return (
@@ -36,21 +36,23 @@ function InvalidLink() {
         <Cancel01Icon className="size-6" />
       </span>
       <header className="space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Invalid invitation</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Invalid reset link</h1>
         <p className="text-sm text-muted-foreground">
-          This invitation link is missing or malformed. Ask your administrator to send a new one.
+          This password reset link is missing or malformed. Request a fresh one from the sign-in page.
         </p>
       </header>
-      <Button className="h-11 w-full text-sm font-medium" render={<Link href="/login" />}>
-        Go to sign in
+      <Button className="h-11 w-full text-sm font-medium" render={<Link href="/forgot-password" />}>
+        Request a new link
       </Button>
     </div>
   );
 }
 
-function AcceptInvitationForm() {
+function ResetPasswordForm() {
   const router = useRouter();
-  const token = useSearchParams().get("token");
+  const params = useSearchParams();
+  const uid = params.get("uid");
+  const token = params.get("token");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -58,26 +60,31 @@ function AcceptInvitationForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<AcceptForm>({ resolver: zodResolver(acceptSchema) });
+  } = useForm<Form>({ resolver: zodResolver(schema) });
 
-  if (!token) return <InvalidLink />;
+  if (!uid || !token) return <InvalidLink />;
 
-  const onSubmit = async (data: AcceptForm) => {
+  const onSubmit = async (data: Form) => {
     setFormError(null);
     setIsSubmitting(true);
     try {
-      await apiRequest("/staff/invitations/accept/", {
+      await apiRequest("/auth/password-reset/confirm/", {
         method: "POST",
-        body: { token, password: data.password, confirm_password: data.confirmPassword },
+        body: {
+          uid,
+          token,
+          new_password: data.password,
+          confirm_new_password: data.confirmPassword,
+        },
         authenticated: false,
       });
-      toast.success("Account activated — you can sign in now");
+      toast.success("Password reset — you can sign in now");
       router.replace("/login");
     } catch (err) {
       setFormError(
         err instanceof Error && err.message
           ? err.message
-          : "This invitation could not be accepted. It may have expired."
+          : "This reset link is invalid or has expired. Request a new one."
       );
     } finally {
       setIsSubmitting(false);
@@ -90,10 +97,8 @@ function AcceptInvitationForm() {
         <SecurityValidationIcon className="size-6" />
       </span>
       <header className="space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Set your password</h1>
-        <p className="text-sm text-muted-foreground">
-          You&apos;ve been invited to Serenity Health. Choose a password to activate your staff account.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Set a new password</h1>
+        <p className="text-sm text-muted-foreground">Choose a new password for your Serenity Health account.</p>
       </header>
 
       {formError && <AuthAlert message={formError} />}
@@ -101,7 +106,7 @@ function AcceptInvitationForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <PasswordField
           id="password"
-          label="Password"
+          label="New password"
           autoComplete="new-password"
           autoFocus
           placeholder="Create a strong password"
@@ -110,7 +115,7 @@ function AcceptInvitationForm() {
         />
         <PasswordField
           id="confirmPassword"
-          label="Confirm password"
+          label="Confirm new password"
           autoComplete="new-password"
           placeholder="Re-enter your password"
           error={errors.confirmPassword?.message}
@@ -121,21 +126,27 @@ function AcceptInvitationForm() {
           {isSubmitting ? (
             <span className="flex items-center gap-2">
               <span className="size-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />
-              Activating…
+              Resetting…
             </span>
           ) : (
-            "Activate account"
+            "Reset password"
           )}
         </Button>
       </form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          Back to sign in
+        </Link>
+      </p>
     </div>
   );
 }
 
-export default function AcceptInvitationPage() {
+export default function ResetPasswordPage() {
   return (
     <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-muted" />}>
-      <AcceptInvitationForm />
+      <ResetPasswordForm />
     </Suspense>
   );
 }
