@@ -72,5 +72,17 @@
       "can_view_all_prescriptions",
       "can_dispense_prescriptions"
     ]
+  },
+  "MANAGER": {
+    "all_permissions": false,
+    "permissions": [
+      "can_view_appointments",
+      "can_view_all_appointments",
+      "can_view_roles",
+      "can_create_roles",
+      "can_edit_roles",
+      "can_assign_permissions",
+      "can_view_permissions"
+    ]
   }
 }
