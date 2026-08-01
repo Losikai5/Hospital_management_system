@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from apps.core.permissions import HasCustomPermission
 
@@ -34,6 +35,15 @@ class DoctorDirectoryBaseView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Doctors"],
+    summary="List doctors",
+    description=(
+        "Returns the doctor directory. Users without the `can_view_all_doctors` "
+        "permission only see active and available doctors."
+    ),
+    responses={200: DoctorDirectorySerializer(many=True)},
+)
 class DoctorDirectoryView(DoctorDirectoryBaseView):
     def get(self, request):
         serializer = self.serializer_class(
@@ -44,6 +54,16 @@ class DoctorDirectoryView(DoctorDirectoryBaseView):
         return Response(serializer.data)
 
 
+@extend_schema(
+    tags=["Doctors"],
+    summary="Get a single doctor",
+    description=(
+        "Returns a single doctor profile by ID. Users without the "
+        "`can_view_all_doctors` permission can only retrieve active and "
+        "available doctors."
+    ),
+    responses={200: DoctorDirectorySerializer},
+)
 class DoctorDirectoryDetailView(DoctorDirectoryBaseView):
     def get(self, request, pk):
         doctor = get_object_or_404(
@@ -77,6 +97,27 @@ class DoctorScheduleBaseView(APIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Doctors"],
+        summary="List my doctor schedules",
+        description=(
+            "Returns the weekly schedules of the currently authenticated doctor."
+        ),
+        responses={200: DoctorScheduleSerializer(many=True)},
+    ),
+    post=extend_schema(
+        tags=["Doctors"],
+        summary="Create a doctor schedule",
+        description=(
+            "Creates a weekly schedule entry (day, working hours and session "
+            "length) for the currently authenticated doctor. Only one schedule "
+            "per day is allowed."
+        ),
+        request=DoctorScheduleSerializer,
+        responses={201: DoctorScheduleSerializer},
+    ),
+)
 class DoctorScheduleListCreateView(DoctorScheduleBaseView):
     def get(self, request):
         serializer = self.serializer_class(
@@ -101,6 +142,23 @@ class DoctorScheduleListCreateView(DoctorScheduleBaseView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Doctors"],
+        summary="Get a doctor schedule",
+        description="Returns a single schedule entry owned by the authenticated doctor.",
+        responses={200: DoctorScheduleSerializer},
+    ),
+    patch=extend_schema(
+        tags=["Doctors"],
+        summary="Update a doctor schedule",
+        description=(
+            "Partially updates a schedule entry owned by the authenticated doctor."
+        ),
+        request=DoctorScheduleSerializer,
+        responses={200: DoctorScheduleSerializer},
+    ),
+)
 class DoctorScheduleDetailView(DoctorScheduleBaseView):
     def get_object(self, pk):
         return get_object_or_404(
@@ -127,6 +185,38 @@ class DoctorScheduleDetailView(DoctorScheduleBaseView):
         return Response(serializer.data)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Doctors"],
+        summary="Get my doctor profile",
+        description=(
+            "Returns the doctor profile (and linked user details) of the "
+            "currently authenticated doctor."
+        ),
+        responses={200: DoctorOnboardingSerializer},
+    ),
+    post=extend_schema(
+        tags=["Doctors"],
+        summary="Complete doctor onboarding",
+        description=(
+            "Creates a doctor profile for the currently authenticated user, "
+            "filling in the linked user fields (name, phone, etc.) in the same "
+            "request. Can only be run once per user."
+        ),
+        request=DoctorOnboardingSerializer,
+        responses={201: DoctorOnboardingSerializer},
+    ),
+    patch=extend_schema(
+        tags=["Doctors"],
+        summary="Update my doctor profile",
+        description=(
+            "Partially updates the doctor profile and linked user fields of the "
+            "currently authenticated doctor."
+        ),
+        request=DoctorOnboardingSerializer,
+        responses={200: DoctorOnboardingSerializer},
+    ),
+)
 class DoctorOnboardingView(APIView):
     serializer_class = DoctorOnboardingSerializer
     permission_classes = [HasCustomPermission]
