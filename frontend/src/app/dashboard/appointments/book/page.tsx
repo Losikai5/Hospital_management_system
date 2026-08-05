@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -37,8 +37,8 @@ const emptyNewPatient = { email: "", first_name: "", last_name: "", phone: "" };
 
 export default function BookAppointmentPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const bookingForOthers = user?.role === "RECEPTIONIST" || user?.role === "ADMIN";
+  const { hasPermission } = useAuth();
+  const bookingForOthers = hasPermission("can_view_all_patients");
 
   const [doctors, setDoctors] = useState<Doctor[] | null>(null);
   const [slots, setSlots] = useState<string[]>([]);
@@ -58,14 +58,15 @@ export default function BookAppointmentPage() {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
+    control,
   } = useForm<BookFormInput, never, BookForm>({
     resolver: zodResolver(bookSchema),
   });
 
-  const selectedDoctor = watch("doctor") as number | undefined;
-  const selectedDate = watch("appointment_date");
+  const watchControl = control as unknown as Control<BookFormInput>;
+  const selectedDoctor = useWatch({ control: watchControl, name: "doctor" }) as number | undefined;
+  const selectedDate = useWatch({ control: watchControl, name: "appointment_date" });
 
   const loadDoctors = useCallback(async () => {
     setDoctorsError(null);
@@ -77,37 +78,56 @@ export default function BookAppointmentPage() {
   }, []);
 
   useEffect(() => {
-    loadDoctors();
+    const timer = window.setTimeout(() => { void loadDoctors(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadDoctors]);
 
   useEffect(() => {
     if (!selectedDoctor || !selectedDate) return;
-    setSlotsLoading(true);
-    // Backend AvailableSlotsView reads ?doctor_id= & ?date= and returns { available_slots: ["09:00", ...] }
-    apiRequest<{ available_slots?: string[] }>(`/appointments/slots/?doctor_id=${selectedDoctor}&date=${selectedDate}`)
-      .then((data) => {
-        setSlots((data.available_slots ?? []).map((s) => s.slice(0, 5)));
-      })
-      .catch(() => setSlots([]))
-      .finally(() => setSlotsLoading(false));
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setSlotsLoading(true);
+      try {
+        const data = await apiRequest<{ available_slots?: string[] }>(
+          `/appointments/slots/?doctor_id=${selectedDoctor}&date=${selectedDate}`
+        );
+        if (!cancelled) setSlots((data.available_slots ?? []).map((slot) => slot.slice(0, 5)));
+      } catch {
+        if (!cancelled) setSlots([]);
+      } finally {
+        if (!cancelled) setSlotsLoading(false);
+      }
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [selectedDoctor, selectedDate]);
 
   // Staff patient search (debounced)
   useEffect(() => {
     if (!bookingForOthers) return;
-    const q = patientQuery.trim();
-    if (!q) {
-      setPatientResults([]);
-      return;
-    }
-    setSearchingPatients(true);
-    const t = setTimeout(() => {
-      apiRequest<Patient[]>(`/patients/?q=${encodeURIComponent(q)}`)
-        .then(setPatientResults)
-        .catch(() => setPatientResults([]))
-        .finally(() => setSearchingPatients(false));
-    }, 250);
-    return () => clearTimeout(t);
+    const query = patientQuery.trim();
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      if (!query) {
+        setPatientResults([]);
+        return;
+      }
+      setSearchingPatients(true);
+      try {
+        const results = await apiRequest<Patient[]>(`/patients/?q=${encodeURIComponent(query)}`);
+        if (!cancelled) setPatientResults(results);
+      } catch {
+        if (!cancelled) setPatientResults([]);
+      } finally {
+        if (!cancelled) setSearchingPatients(false);
+      }
+    }, query ? 250 : 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [patientQuery, bookingForOthers]);
 
   const registerPatient = async () => {

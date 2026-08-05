@@ -52,6 +52,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     role = serializers.CharField(source="role.code", read_only=True)
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -61,6 +62,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "role",
+            "permissions",
             "phone",
             "date_of_birth",
             "gender",
@@ -70,6 +72,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "email", "role", "is_verified", "created_at"]
+
+    def get_permissions(self, obj) -> list[str]:
+        return list(
+            obj.role.permissions.filter(is_active=True)
+            .order_by("code")
+            .values_list("code", flat=True)
+        )
 
 
 class ChangePasswordSerializer(serializers.Serializer):

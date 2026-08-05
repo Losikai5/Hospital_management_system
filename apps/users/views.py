@@ -1,10 +1,12 @@
 from rest_framework import serializers as drf_serializers
-from rest_framework import status, generics
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.authentication import AUTH_HEADER_TYPES
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.settings import api_settings
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
@@ -14,6 +16,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from django.utils.module_loading import import_string
 from .emails import send_staff_invitation_email, send_password_reset_email
 from .service import StaffInvitationAcceptanceError, create_staff_invitation,accept_staff_invitation
 from apps.core.permissions import HasCustomPermission
@@ -21,32 +24,34 @@ from apps.core.schemas import ErrorResponse, MessageResponse
 from .models import CustomUser
 from .serializers import ( UserRegistrationSerializer, UserProfileSerializer, ChangePasswordSerializer, StaffInvitationSerializer,StaffInvitationAcceptSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer,)
 
+ConfiguredTokenRefreshSerializer = import_string(
+    api_settings.TOKEN_REFRESH_SERIALIZER
+)
+
 
 @extend_schema(
     tags=["Authentication & Users"],
     summary="Register a new patient account",
-    description=(
-        "Creates a new patient user account and a matching patient profile. "
-        "The PATIENT role is assigned automatically. "
-        "Passwords are validated against Django's password validators."
-    ),
     request=UserRegistrationSerializer,
     responses={201: UserRegistrationSerializer},
 )
-class RegisterView(generics.CreateAPIView):
-    queryset = CustomUser.objects.all()
+class RegisterView(APIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            self.serializer_class(user).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 @extend_schema(
     tags=["Authentication & Users"],
     summary="Log in",
-    description=(
-        "Authenticates a user with email and password and returns a JWT pair. "
-        "The access token is short-lived; the refresh token should be stored "
-        "securely and exchanged at `/token/refresh/`."
-    ),
     request=inline_serializer(
         "LoginRequest",
         {
@@ -71,6 +76,9 @@ class RegisterView(generics.CreateAPIView):
                         "id": drf_serializers.IntegerField(),
                         "email": drf_serializers.EmailField(),
                         "role": drf_serializers.CharField(),
+                        "permissions": drf_serializers.ListField(
+                            child=drf_serializers.CharField(),
+                        ),
                     },
                 ),
             },
@@ -119,6 +127,11 @@ class LoginView(APIView):
                 'id': user.id,
                 'email': user.email,
                 'role': user.role_code,
+                'permissions': list(
+                    user.role.permissions.filter(is_active=True)
+                    .order_by('code')
+                    .values_list('code', flat=True)
+                ),
             }
         }, status=status.HTTP_200_OK)
 
@@ -126,16 +139,12 @@ class LoginView(APIView):
 @extend_schema(
     tags=["Authentication & Users"],
     summary="Log out",
-    description=(
-        "Blacklists the provided JWT refresh token so it can no longer be used "
-        "to obtain new access tokens."
-    ),
     request=inline_serializer(
         "LogoutRequest",
         {"refresh": drf_serializers.CharField()},
     ),
     responses={
-        205: None,
+        205: MessageResponse,
         400: ErrorResponse,
     },
 )
@@ -164,39 +173,63 @@ class LogoutView(APIView):
             )
 
 
+@extend_schema(
+    tags=["Authentication & Users"],
+    summary="Refresh access token",
+    request=ConfiguredTokenRefreshSerializer,
+    responses={200: ConfiguredTokenRefreshSerializer, 401: ErrorResponse},
+)
+class TokenRefreshAPIView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    serializer_class = ConfiguredTokenRefreshSerializer
+    www_authenticate_realm = "api"
+
+    def get_authenticate_header(self, request):
+        return f'{AUTH_HEADER_TYPES[0]} realm="{self.www_authenticate_realm}"'
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as error:
+            raise InvalidToken(error.args[0]) from error
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
 @extend_schema_view(
     get=extend_schema(
         tags=["Authentication & Users"],
         summary="Get current user profile",
-        description="Returns the profile of the currently authenticated user.",
         responses={200: UserProfileSerializer},
     ),
     patch=extend_schema(
         tags=["Authentication & Users"],
         summary="Update current user profile",
-        description=(
-            "Partially updates the profile of the currently authenticated user. "
-            "The email and role cannot be changed here."
-        ),
         request=UserProfileSerializer,
         responses={200: UserProfileSerializer},
     ),
 )
-class ProfileView(generics.RetrieveUpdateAPIView):
+class ProfileView(APIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_object(self):
-        return self.request.user
+    def get(self, request):
+        return Response(self.serializer_class(request.user).data)
+
+    def patch(self, request):
+        serializer = self.serializer_class(
+            request.user,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 @extend_schema(
     tags=["Authentication & Users"],
     summary="Change password",
-    description=(
-        "Changes the password of the currently authenticated user. "
-        "The old password must be provided and verified."
-    ),
     request=ChangePasswordSerializer,
     responses={
         200: MessageResponse,
@@ -224,33 +257,10 @@ class ChangePasswordView(APIView):
         )
 
 @extend_schema(
-    tags=["Staff Management"],
-    summary="Create a staff invitation",
-    description=(
-        "Invites a new staff member by email. The invitee receives an email "
-        "containing a signed invitation token. Requires `can_create_users` and "
-        "`can_assign_roles` permissions."
-    ),
-    request=StaffInvitationSerializer,
-    responses={
-        201: inline_serializer(
-            "StaffInvitationCreated",
-            {
-                "message": drf_serializers.CharField(),
-                "invitation": inline_serializer(
-                    "StaffInvitationData",
-                    {
-                        "id": drf_serializers.IntegerField(),
-                        "email": drf_serializers.EmailField(),
-                        "role": drf_serializers.CharField(),
-                        "invited_by": drf_serializers.EmailField(),
-                        "expires_at": drf_serializers.DateTimeField(),
-                    },
-                ),
-            },
-        ),
-        400: ErrorResponse,
-    },
+    tags=["Authentication & Users"],
+    summary="Request a password reset",
+    request=PasswordResetRequestSerializer,
+    responses={200: MessageResponse, 400: ErrorResponse},
 )
 class PasswordResetRequestView(APIView):
     """Public: emails a reset link. Always returns 200 so it never reveals
@@ -280,6 +290,12 @@ class PasswordResetRequestView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Authentication & Users"],
+    summary="Confirm a password reset",
+    request=PasswordResetConfirmSerializer,
+    responses={200: MessageResponse, 400: ErrorResponse},
+)
 class PasswordResetConfirmView(APIView):
     """Public: sets a new password given a valid uid + token."""
     permission_classes = [AllowAny]
@@ -295,6 +311,30 @@ class PasswordResetConfirmView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Staff Management"],
+    summary="Create a staff invitation",
+    request=StaffInvitationSerializer,
+    responses={
+        201: inline_serializer(
+            "StaffInvitationCreated",
+            {
+                "message": drf_serializers.CharField(),
+                "invitation": inline_serializer(
+                    "StaffInvitationData",
+                    {
+                        "id": drf_serializers.IntegerField(),
+                        "email": drf_serializers.EmailField(),
+                        "role": drf_serializers.CharField(),
+                        "invited_by": drf_serializers.EmailField(),
+                        "expires_at": drf_serializers.DateTimeField(),
+                    },
+                ),
+            },
+        ),
+        400: ErrorResponse,
+    },
+)
 class StaffInvitationView(APIView):
     permission_classes = [HasCustomPermission]
     serializer_class = StaffInvitationSerializer
@@ -335,10 +375,6 @@ class StaffInvitationView(APIView):
 @extend_schema(
     tags=["Staff Management"],
     summary="Accept a staff invitation",
-    description=(
-        "Accepts a previously created staff invitation by setting the invitee's "
-        "password using the invitation token sent by email."
-    ),
     request=StaffInvitationAcceptSerializer,
     responses={
         200: inline_serializer(

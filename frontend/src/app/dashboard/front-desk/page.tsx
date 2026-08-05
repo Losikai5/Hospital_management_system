@@ -112,7 +112,8 @@ export default function FrontDeskPage() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const today = localTodayISO();

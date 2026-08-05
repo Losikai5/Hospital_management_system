@@ -211,5 +211,34 @@
       "name": "Can Cancel Prescriptions",
       "description": "Allows cancelling pending prescriptions permitted by ownership rules."
     }
+  ],
+  "Billing Management": [
+    {
+      "code": "can_view_invoices",
+      "name": "Can View Invoices",
+      "description": "Allows viewing invoices permitted by ownership rules."
+    },
+    {
+      "code": "can_view_all_invoices",
+      "name": "Can View All Invoices",
+      "description": "Allows viewing all invoices."
+    },
+    {
+      "code": "can_create_invoices",
+      "name": "Can Create Invoices",
+      "description": "Allows generating invoices for completed appointments."
+    },
+    {
+      "code": "can_record_invoice_payments",
+      "name": "Can Record Invoice Payments",
+      "description": "Allows recording payments against outstanding invoices."
+    }
+  ],
+  "Audit Management": [
+    {
+      "code": "can_view_audit_logs",
+      "name": "Can View Audit Logs",
+      "description": "Allows viewing immutable API audit records."
+    }
   ]
 }

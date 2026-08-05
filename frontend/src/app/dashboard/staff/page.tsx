@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -42,7 +42,7 @@ const createRoleSchema = z.object({
 type CreateRoleForm = z.infer<typeof createRoleSchema>;
 
 export default function StaffPage() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [tab, setTab] = useState<Tab>("invitations");
   
   // Data lists
@@ -68,6 +68,17 @@ export default function StaffPage() {
     defaultValues: { code: "", name: "", description: "", permissions: [] },
   });
 
+  const selectedRolePermissions = useWatch({ control: roleForm.control, name: "permissions" }) ?? [];
+  const canInvite =
+    hasPermission("can_create_users") &&
+    hasPermission("can_assign_roles") &&
+    hasPermission("can_view_roles");
+  const canManageRoles =
+    hasPermission("can_view_roles") &&
+    hasPermission("can_view_permissions");
+  const canAccess = canInvite || canManageRoles;
+  const activeTab: Tab = canInvite ? tab : "roles";
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
@@ -88,12 +99,12 @@ export default function StaffPage() {
   };
 
   useEffect(() => {
-    if (user?.role === "ADMIN") {
-      loadData();
-    }
-  }, [user]);
+    if (!canAccess) return;
+    const timer = window.setTimeout(() => { void loadData(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [canAccess]);
 
-  if (!user || user.role !== "ADMIN") return null;
+  if (!user || !canAccess) return null;
 
   const onInviteSubmit = async (data: InviteForm) => {
     setSending(true);
@@ -256,13 +267,15 @@ export default function StaffPage() {
         {([
           { key: "invitations", label: "Invitations" },
           { key: "roles", label: "Roles & Permissions" },
-        ] as { key: Tab; label: string }[]).map((t) => (
+        ] as { key: Tab; label: string }[]).filter((item) =>
+          item.key === "invitations" ? canInvite : canManageRoles
+        ).map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={cn(
               "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              tab === t.key
+              activeTab === t.key
                 ? "bg-emerald-600 text-white shadow-sm"
                 : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50 dark:bg-stone-900 dark:text-stone-400 dark:ring-stone-700 dark:hover:bg-stone-800"
             )}
@@ -272,7 +285,7 @@ export default function StaffPage() {
         ))}
       </div>
 
-      {tab === "invitations" ? (
+      {activeTab === "invitations" ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <form
             onSubmit={inviteForm.handleSubmit(onInviteSubmit)}
@@ -440,7 +453,7 @@ export default function StaffPage() {
               <Label>Permissions</Label>
               <div className="max-h-[300px] overflow-y-auto rounded-lg border border-stone-200 p-3 space-y-2 dark:border-stone-700 bg-stone-50/50 dark:bg-stone-900/50">
                 {permissions.map((perm) => {
-                  const isChecked = roleForm.watch("permissions")?.includes(perm.code);
+                  const isChecked = selectedRolePermissions.includes(perm.code);
                   return (
                     <label
                       key={perm.code}

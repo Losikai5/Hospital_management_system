@@ -87,7 +87,7 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function ProfilePage() {
   const { user, updateProfile, refreshUser } = useAuth();
-  const [patient, setPatient] = useState<PatientProfile | null>(null);
+  const [, setPatient] = useState<PatientProfile | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPatient, setSavingPatient] = useState(false);
   const [hasDoctorProfile, setHasDoctorProfile] = useState(false);
@@ -150,9 +150,11 @@ export default function ProfilePage() {
   }, [user?.role, doctorForm]);
 
   useEffect(() => {
-    loadPatient();
-    loadDoctor();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const timer = window.setTimeout(() => {
+      void loadPatient();
+      void loadDoctor();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadPatient, loadDoctor]);
 
   const onSaveProfile = async (data: ProfileForm) => {
@@ -336,7 +338,7 @@ export default function ProfilePage() {
             </h3>
             {!hasDoctorProfile && (!user.first_name || !user.last_name) && (
               <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
-                Add your name in Personal information first — it's required to create your doctor profile.
+                Add your name in Personal information first — it&apos;s required to create your doctor profile.
               </p>
             )}
             <div className="grid gap-4 sm:grid-cols-2">

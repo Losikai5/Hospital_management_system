@@ -16,7 +16,7 @@ import type { Medicine, Prescription } from "@/lib/types";
 type Tab = "prescriptions" | "medicines";
 
 export default function PharmacyPage() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [tab, setTab] = useState<Tab>("prescriptions");
   const [medicines, setMedicines] = useState<Medicine[] | null>(null);
   const [prescriptions, setPrescriptions] = useState<Prescription[] | null>(null);
@@ -38,7 +38,8 @@ export default function PharmacyPage() {
   }, []);
 
   useEffect(() => {
-    loadAll();
+    const timer = window.setTimeout(() => { void loadAll(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadAll]);
 
   const dispense = async (id: number) => {
@@ -55,7 +56,7 @@ export default function PharmacyPage() {
   };
 
   if (!user) return null;
-  const canDispense = user.role === "PHARMACIST" || user.role === "ADMIN";
+  const canDispense = hasPermission("can_dispense_prescriptions");
 
   return (
     <div className="space-y-6">

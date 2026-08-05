@@ -22,7 +22,10 @@ from django.urls import path,include
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+from apps.core.views import HealthCheckView
+
 urlpatterns = [
+    path("api/v1/health/", HealthCheckView.as_view(), name="health"),
     path('admin/', admin.site.urls),
     path('api/v1/auth/', include('apps.users.urls')),
     path('api/v1/patients/', include('apps.patients.urls')),
@@ -30,6 +33,8 @@ urlpatterns = [
     path('api/v1/appointments/', include('apps.appointments.urls')),
     path('api/v1/medical-records/', include('apps.medical_records.urls')),
     path('api/v1/pharmacy/', include('apps.pharmacy.urls')),
+    path('api/v1/billing/', include('apps.billing.urls')),
+    path('api/v1/audit/', include('apps.audit.urls')),
     path('api/v1/staff/', include('apps.users.staff_urls')),
     
     # API documentation

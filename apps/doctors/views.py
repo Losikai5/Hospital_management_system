@@ -1,12 +1,19 @@
+from django.db import IntegrityError
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 
 from apps.core.permissions import HasCustomPermission
 
-from .models import DoctorProfile, DoctorSchedule
+from .models import DoctorProfile, DoctorSchedule, Specialization
 from .serializers import (
     DoctorDirectorySerializer,
     DoctorOnboardingSerializer,
@@ -26,22 +33,89 @@ class DoctorDirectoryBaseView(APIView):
         )
 
         if self.request.user.has_permission("can_view_all_doctors"):
-            return queryset
+            visible_queryset = queryset
+        else:
+            visible_queryset = queryset.filter(
+                is_available=True,
+                user__is_active=True,
+                user__role__is_active=True,
+            )
 
-        return queryset.filter(
-            is_available=True,
-            user__is_active=True,
-            user__role__is_active=True,
-        )
+        specialization = self.request.query_params.get("specialization")
+        if specialization:
+            specialization = specialization.upper()
+            if specialization not in Specialization.values:
+                raise ValidationError(
+                    {"specialization": "Invalid specialization."}
+                )
+            visible_queryset = visible_queryset.filter(
+                specialization=specialization
+            )
+
+        is_available = self.request.query_params.get("is_available")
+        if is_available is not None:
+            normalized_availability = is_available.lower()
+            if normalized_availability not in {"true", "false"}:
+                raise ValidationError(
+                    {"is_available": "Use true or false."}
+                )
+            visible_queryset = visible_queryset.filter(
+                is_available=normalized_availability == "true"
+            )
+
+        search = self.request.query_params.get("search")
+        if search:
+            visible_queryset = visible_queryset.filter(
+                Q(user__first_name__icontains=search)
+                | Q(user__last_name__icontains=search)
+                | Q(user__email__icontains=search)
+            )
+
+        ordering = self.request.query_params.get("ordering", "name")
+        ordering_map = {
+            "name": ("user__first_name", "user__last_name"),
+            "-name": ("-user__first_name", "-user__last_name"),
+            "specialization": ("specialization", "user__first_name"),
+            "-specialization": ("-specialization", "user__first_name"),
+            "consultation_fee": ("consultation_fee", "user__first_name"),
+            "-consultation_fee": ("-consultation_fee", "user__first_name"),
+            "years_of_experience": ("years_of_experience", "user__first_name"),
+            "-years_of_experience": ("-years_of_experience", "user__first_name"),
+        }
+        if ordering not in ordering_map:
+            raise ValidationError({"ordering": "Invalid ordering field."})
+
+        return visible_queryset.order_by(*ordering_map[ordering])
 
 
 @extend_schema(
     tags=["Doctors"],
     summary="List doctors",
-    description=(
-        "Returns the doctor directory. Users without the `can_view_all_doctors` "
-        "permission only see active and available doctors."
-    ),
+    parameters=[
+        OpenApiParameter(
+            name="specialization",
+            type=str,
+            description="Filter by specialization code.",
+        ),
+        OpenApiParameter(
+            name="is_available",
+            type=bool,
+            description="Filter by availability using true or false.",
+        ),
+        OpenApiParameter(
+            name="search",
+            type=str,
+            description="Search by doctor name or email.",
+        ),
+        OpenApiParameter(
+            name="ordering",
+            type=str,
+            description=(
+                "Order by name, specialization, consultation_fee or "
+                "years_of_experience; prefix with - for descending order."
+            ),
+        ),
+    ],
     responses={200: DoctorDirectorySerializer(many=True)},
 )
 class DoctorDirectoryView(DoctorDirectoryBaseView):
@@ -57,11 +131,6 @@ class DoctorDirectoryView(DoctorDirectoryBaseView):
 @extend_schema(
     tags=["Doctors"],
     summary="Get a single doctor",
-    description=(
-        "Returns a single doctor profile by ID. Users without the "
-        "`can_view_all_doctors` permission can only retrieve active and "
-        "available doctors."
-    ),
     responses={200: DoctorDirectorySerializer},
 )
 class DoctorDirectoryDetailView(DoctorDirectoryBaseView):
@@ -82,6 +151,9 @@ class DoctorScheduleBaseView(APIView):
     permission_classes = [HasCustomPermission]
     required_permission = "can_manage_doctor_schedules"
 
+    def can_manage_all_doctors(self):
+        return self.request.user.has_permission("can_view_all_doctors")
+
     def get_doctor_profile(self):
         return get_object_or_404(
             DoctorProfile,
@@ -89,31 +161,45 @@ class DoctorScheduleBaseView(APIView):
         )
 
     def get_queryset(self):
-        return DoctorSchedule.objects.filter(
-            doctor=self.get_doctor_profile(),
-        ).select_related(
+        queryset = DoctorSchedule.objects.select_related(
             "doctor",
             "doctor__user",
         )
+
+        if self.can_manage_all_doctors():
+            return queryset
+
+        return queryset.filter(
+            doctor=self.get_doctor_profile(),
+        )
+
+    def save_serializer(self, serializer):
+        try:
+            if self.can_manage_all_doctors():
+                return serializer.save()
+
+            return serializer.save(
+                doctor=self.get_doctor_profile(),
+            )
+        except IntegrityError as error:
+            raise ValidationError(
+                {
+                    "day_of_week": (
+                        "A schedule already exists for this doctor and day."
+                    )
+                }
+            ) from error
 
 
 @extend_schema_view(
     get=extend_schema(
         tags=["Doctors"],
-        summary="List my doctor schedules",
-        description=(
-            "Returns the weekly schedules of the currently authenticated doctor."
-        ),
+        summary="List accessible doctor schedules",
         responses={200: DoctorScheduleSerializer(many=True)},
     ),
     post=extend_schema(
         tags=["Doctors"],
         summary="Create a doctor schedule",
-        description=(
-            "Creates a weekly schedule entry (day, working hours and session "
-            "length) for the currently authenticated doctor. Only one schedule "
-            "per day is allowed."
-        ),
         request=DoctorScheduleSerializer,
         responses={201: DoctorScheduleSerializer},
     ),
@@ -128,13 +214,12 @@ class DoctorScheduleListCreateView(DoctorScheduleBaseView):
         return Response(serializer.data)
 
     def post(self, request):
-        doctor = self.get_doctor_profile()
         serializer = self.serializer_class(
             data=request.data,
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save(doctor=doctor)
+        self.save_serializer(serializer)
 
         return Response(
             serializer.data,
@@ -146,15 +231,11 @@ class DoctorScheduleListCreateView(DoctorScheduleBaseView):
     get=extend_schema(
         tags=["Doctors"],
         summary="Get a doctor schedule",
-        description="Returns a single schedule entry owned by the authenticated doctor.",
         responses={200: DoctorScheduleSerializer},
     ),
     patch=extend_schema(
         tags=["Doctors"],
         summary="Update a doctor schedule",
-        description=(
-            "Partially updates a schedule entry owned by the authenticated doctor."
-        ),
         request=DoctorScheduleSerializer,
         responses={200: DoctorScheduleSerializer},
     ),
@@ -181,7 +262,7 @@ class DoctorScheduleDetailView(DoctorScheduleBaseView):
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        self.save_serializer(serializer)
         return Response(serializer.data)
 
 
@@ -189,30 +270,17 @@ class DoctorScheduleDetailView(DoctorScheduleBaseView):
     get=extend_schema(
         tags=["Doctors"],
         summary="Get my doctor profile",
-        description=(
-            "Returns the doctor profile (and linked user details) of the "
-            "currently authenticated doctor."
-        ),
         responses={200: DoctorOnboardingSerializer},
     ),
     post=extend_schema(
         tags=["Doctors"],
         summary="Complete doctor onboarding",
-        description=(
-            "Creates a doctor profile for the currently authenticated user, "
-            "filling in the linked user fields (name, phone, etc.) in the same "
-            "request. Can only be run once per user."
-        ),
         request=DoctorOnboardingSerializer,
         responses={201: DoctorOnboardingSerializer},
     ),
     patch=extend_schema(
         tags=["Doctors"],
         summary="Update my doctor profile",
-        description=(
-            "Partially updates the doctor profile and linked user fields of the "
-            "currently authenticated doctor."
-        ),
         request=DoctorOnboardingSerializer,
         responses={200: DoctorOnboardingSerializer},
     ),

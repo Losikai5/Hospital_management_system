@@ -1,13 +1,24 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, status
+from django.db.models import F, Q
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 
 from apps.core.permissions import HasCustomPermission
 from apps.core.schemas import ErrorResponse, MessageResponse
 
-from .models import Medicine, Prescription
+from .models import (
+    Medicine,
+    Prescription,
+    PrescriptionStatus,
+    UnitType,
+)
 from .serializers import (
     MedicineCreateSerializer,
     MedicineListSerializer,
@@ -15,177 +26,408 @@ from .serializers import (
     PrescriptionDispenseSerializer,
     PrescriptionListSerializer,
 )
-from .service import dispense_prescription
+from .service import cancel_prescription, dispense_prescription
 
 
 @extend_schema(
     tags=["Pharmacy"],
     summary="List medicines",
-    description=(
-        "Lists medicines in the pharmacy inventory. Users without "
-        "`can_view_all_medicines` only see active medicines."
-    ),
+    parameters=[
+        OpenApiParameter(name="unit_type", type=str),
+        OpenApiParameter(name="is_active", type=bool),
+        OpenApiParameter(name="low_stock", type=bool),
+        OpenApiParameter(name="search", type=str),
+        OpenApiParameter(
+            name="ordering",
+            type=str,
+            description=(
+                "name, stock_quantity, unit_cost or created_at; "
+                "prefix with - for descending order."
+            ),
+        ),
+    ],
     responses={200: MedicineListSerializer(many=True)},
 )
-class MedicineListView(generics.ListAPIView):
+class MedicineListView(APIView):
     serializer_class = MedicineListSerializer
     permission_classes = [HasCustomPermission]
     required_permission = "can_view_medicines"
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Medicine.objects.none()
+        queryset = Medicine.objects.all()
 
-        if self.request.user.has_permission("can_view_all_medicines"):
-            return Medicine.objects.all()
+        if not self.request.user.has_permission("can_view_all_medicines"):
+            queryset = queryset.filter(is_active=True)
 
-        return Medicine.objects.filter(is_active=True)
+        unit_type = self.request.query_params.get("unit_type")
+        if unit_type:
+            unit_type = unit_type.lower()
+            if unit_type not in UnitType.values:
+                raise ValidationError({"unit_type": "Invalid medicine unit type."})
+            queryset = queryset.filter(unit_type=unit_type)
+
+        is_active = self.request.query_params.get("is_active")
+        if is_active is not None:
+            normalized = is_active.lower()
+            if normalized not in {"true", "false"}:
+                raise ValidationError({"is_active": "Use true or false."})
+            queryset = queryset.filter(is_active=normalized == "true")
+
+        low_stock = self.request.query_params.get("low_stock")
+        if low_stock is not None:
+            normalized = low_stock.lower()
+            if normalized not in {"true", "false"}:
+                raise ValidationError({"low_stock": "Use true or false."})
+            if normalized == "true":
+                queryset = queryset.filter(
+                    stock_quantity__lte=F("low_stock_threshold")
+                )
+            else:
+                queryset = queryset.filter(
+                    stock_quantity__gt=F("low_stock_threshold")
+                )
+
+        search = self.request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+
+        ordering = self.request.query_params.get("ordering", "name")
+        allowed_ordering = {
+            "name", "-name", "stock_quantity", "-stock_quantity",
+            "unit_cost", "-unit_cost", "created_at", "-created_at",
+        }
+        if ordering not in allowed_ordering:
+            raise ValidationError({"ordering": "Invalid ordering field."})
+
+        return queryset.order_by(ordering)
+
+    def get(self, request):
+        serializer = self.serializer_class(
+            self.get_queryset(),
+            many=True,
+            context={"request": request},
+        )
+        return Response(serializer.data)
 
 
 @extend_schema(
     tags=["Pharmacy"],
     summary="Add a medicine",
-    description="Adds a new medicine to the pharmacy inventory.",
     request=MedicineCreateSerializer,
     responses={201: MedicineListSerializer},
 )
-class MedicineCreateView(generics.CreateAPIView):
+class MedicineCreateView(APIView):
     serializer_class = MedicineCreateSerializer
     permission_classes = [HasCustomPermission]
     required_permission = "can_create_medicines"
 
+    def post(self, request):
+        serializer = self.serializer_class(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        medicine = serializer.save()
 
-@extend_schema(
-    tags=["Pharmacy"],
-    summary="Update a medicine",
-    description=(
-        "Partially updates a medicine's details and stock levels. PUT and PATCH "
-        "are both supported."
+        from apps.notifications.triggers import queue_low_stock_check
+
+        queue_low_stock_check(medicine=medicine)
+        return Response(
+            MedicineListSerializer(
+                medicine,
+                context={"request": request},
+            ).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Pharmacy"],
+        summary="Get a medicine",
+        responses={200: MedicineListSerializer},
     ),
-    request=MedicineCreateSerializer,
-    responses={200: MedicineListSerializer},
+    put=extend_schema(
+        tags=["Pharmacy"],
+        summary="Replace a medicine",
+        request=MedicineCreateSerializer,
+        responses={200: MedicineListSerializer},
+    ),
+    patch=extend_schema(
+        tags=["Pharmacy"],
+        summary="Update a medicine",
+        request=MedicineCreateSerializer,
+        responses={200: MedicineListSerializer},
+    ),
 )
-class MedicineUpdateView(generics.UpdateAPIView):
+class MedicineDetailView(APIView):
     serializer_class = MedicineCreateSerializer
     permission_classes = [HasCustomPermission]
-    required_permission = "can_edit_medicines"
+    required_permissions_by_method = {
+        "GET": ("can_view_medicines",),
+        "PUT": ("can_edit_medicines",),
+        "PATCH": ("can_edit_medicines",),
+    }
 
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Medicine.objects.none()
-        return Medicine.objects.all()
+    def get_object(self):
+        queryset = Medicine.objects.all()
+
+        if (
+            self.request.method == "GET"
+            and not self.request.user.has_permission("can_view_all_medicines")
+        ):
+            queryset = queryset.filter(is_active=True)
+
+        return get_object_or_404(queryset, pk=self.kwargs["pk"])
+
+    def get(self, request, pk):
+        serializer = MedicineListSerializer(
+            self.get_object(),
+            context={"request": request},
+        )
+        return Response(serializer.data)
+
+    def update(self, request, pk, *, partial):
+        serializer = self.serializer_class(
+            self.get_object(),
+            data=request.data,
+            partial=partial,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        medicine = serializer.save()
+
+        from apps.notifications.triggers import queue_low_stock_check
+
+        queue_low_stock_check(medicine=medicine)
+        return Response(
+            MedicineListSerializer(
+                medicine,
+                context={"request": request},
+            ).data
+        )
+
+    def put(self, request, pk):
+        return self.update(request, pk, partial=False)
+
+    def patch(self, request, pk):
+        return self.update(request, pk, partial=True)
 
 
 @extend_schema(
     tags=["Pharmacy"],
     summary="Create a prescription",
-    description=(
-        "Creates a prescription for one of the prescribing doctor's own medical "
-        "records. Status is set to PENDING automatically."
-    ),
     request=PrescriptionCreateSerializer,
     responses={201: PrescriptionListSerializer},
 )
-class PrescriptionCreateView(generics.CreateAPIView):
+class PrescriptionCreateView(APIView):
     serializer_class = PrescriptionCreateSerializer
     permission_classes = [HasCustomPermission]
     required_permission = "can_create_prescriptions"
+
+    def post(self, request):
+        serializer = self.serializer_class(
+            data=request.data,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        prescription = serializer.save()
+        return Response(
+            PrescriptionListSerializer(
+                prescription,
+                context={"request": request},
+            ).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PrescriptionListBaseView(APIView):
+    serializer_class = PrescriptionListSerializer
+    permission_classes = [HasCustomPermission]
+    required_permission = "can_view_prescriptions"
+
+    def base_queryset(self):
+        return Prescription.objects.select_related(
+            "medicine",
+            "medical_record__appointment__doctor__user",
+            "medical_record__appointment__patient__user",
+        )
+    def apply_filters(self, queryset):
+        status_code = self.request.query_params.get("status")
+        if status_code:
+            status_code = status_code.upper()
+            if status_code not in PrescriptionStatus.values:
+                raise ValidationError({"status": "Invalid prescription status."})
+            queryset = queryset.filter(status=status_code)
+
+        search = self.request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(medicine__name__icontains=search)
+                | Q(medical_record__appointment__patient__user__email__icontains=search)
+                | Q(medical_record__appointment__patient__user__first_name__icontains=search)
+                | Q(medical_record__appointment__patient__user__last_name__icontains=search)
+            )
+
+        ordering = self.request.query_params.get("ordering", "-prescribed_at")
+        allowed_ordering = {
+            "prescribed_at", "-prescribed_at",
+            "dispensed_at", "-dispensed_at",
+            "quantity_prescribed", "-quantity_prescribed",
+        }
+        if ordering not in allowed_ordering:
+            raise ValidationError({"ordering": "Invalid ordering field."})
+
+        return queryset.order_by(ordering)
 
 
 @extend_schema(
     tags=["Pharmacy"],
     summary="List prescriptions",
-    description=(
-        "Role-aware list of prescriptions: patients see their own, doctors see "
-        "the ones they prescribed, and users with `can_view_all_prescriptions` "
-        "see everything."
-    ),
+    parameters=[
+        OpenApiParameter(name="status", type=str),
+        OpenApiParameter(
+            name="search",
+            type=str,
+            description="Search by medicine or patient name/email.",
+        ),
+        OpenApiParameter(
+            name="ordering",
+            type=str,
+            description=(
+                "prescribed_at, dispensed_at or quantity_prescribed; "
+                "prefix with - for descending order."
+            ),
+        ),
+    ],
     responses={200: PrescriptionListSerializer(many=True)},
 )
-class PrescriptionListView(generics.ListAPIView):
-    serializer_class = PrescriptionListSerializer
-    permission_classes = [HasCustomPermission]
-    required_permission = "can_view_prescriptions"
-
+class PrescriptionListView(PrescriptionListBaseView):
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Prescription.objects.none()
-
         user = self.request.user
-        queryset = Prescription.objects.select_related(
-            "medicine",
-            "medical_record__appointment__doctor__user",
-            "medical_record__appointment__patient__user",
-        )
+        queryset = self.base_queryset()
 
         if user.has_permission("can_view_all_prescriptions"):
-            return queryset
-
-        if user.role_code == "DOCTOR":
-            return queryset.filter(
+            visible_queryset = queryset
+        elif user.role_code == "DOCTOR":
+            visible_queryset = queryset.filter(
                 medical_record__appointment__doctor__user=user
             )
-
-        if user.role_code == "PATIENT":
-            return queryset.filter(
+        elif user.role_code == "PATIENT":
+            visible_queryset = queryset.filter(
                 medical_record__appointment__patient__user=user
             )
+        else:
+            return Prescription.objects.none()
 
-        return Prescription.objects.none()
+        return self.apply_filters(visible_queryset)
+
+    def get(self, request):
+        serializer = self.serializer_class(
+            self.get_queryset(),
+            many=True,
+            context={"request": request},
+        )
+        return Response(serializer.data)
 
 
 @extend_schema(
     tags=["Pharmacy"],
     summary="List my prescriptions",
-    description="Returns the prescriptions belonging to the currently authenticated patient.",
+    parameters=[
+        OpenApiParameter(name="status", type=str),
+        OpenApiParameter(name="search", type=str),
+        OpenApiParameter(name="ordering", type=str),
+    ],
     responses={200: PrescriptionListSerializer(many=True)},
 )
-class PatientPrescriptionListView(generics.ListAPIView):
-    serializer_class = PrescriptionListSerializer
-    permission_classes = [HasCustomPermission]
-    required_permission = "can_view_prescriptions"
-
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Prescription.objects.none()
-
-        return Prescription.objects.filter(
-            medical_record__appointment__patient__user=self.request.user
-        ).select_related(
-            "medicine",
-            "medical_record__appointment__doctor__user",
-            "medical_record__appointment__patient__user",
+class PatientPrescriptionListView(PrescriptionListBaseView):
+    def get(self, request):
+        queryset = self.apply_filters(
+            self.base_queryset().filter(
+                medical_record__appointment__patient__user=request.user
+            )
         )
+        serializer = self.serializer_class(
+            queryset,
+            many=True,
+            context={"request": request},
+        )
+        return Response(serializer.data)
 
 
 @extend_schema(
     tags=["Pharmacy"],
     summary="Dispense a prescription",
-    description=(
-        "Dispenses a pending prescription: marks it as dispensed, records the "
-        "dispensed time, and deducts the prescribed quantity from medicine stock."
-    ),
+    request=None,
     responses={
         200: MessageResponse,
         400: ErrorResponse,
     },
 )
 class PrescriptionDispenseView(APIView):
+    serializer_class = PrescriptionDispenseSerializer
     permission_classes = [HasCustomPermission]
     required_permission = "can_dispense_prescriptions"
-    serializer_class = PrescriptionDispenseSerializer
 
     def post(self, request, pk):
         prescription = get_object_or_404(Prescription, pk=pk)
 
         try:
             dispense_prescription(prescription)
+        except ValueError as error:
             return Response(
-                {"message": f"Prescription #{pk} dispensed successfully."},
-                status=status.HTTP_200_OK,
+                {"error": str(error)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"message": f"Prescription #{pk} dispensed successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(
+    tags=["Pharmacy"],
+    summary="Cancel a prescription",
+    request=None,
+    responses={
+        200: MessageResponse,
+        400: ErrorResponse,
+    },
+)
+class PrescriptionCancelView(APIView):
+    serializer_class = PrescriptionDispenseSerializer
+    permission_classes = [HasCustomPermission]
+    required_permission = "can_cancel_prescriptions"
+
+    def get_queryset(self):
+        queryset = Prescription.objects.select_related(
+            "medical_record__appointment__doctor__user",
+        )
+
+        if self.request.user.has_permission("can_view_all_prescriptions"):
+            return queryset
+
+        return queryset.filter(
+            medical_record__appointment__doctor__user=self.request.user
+        )
+
+    def post(self, request, pk):
+        prescription = get_object_or_404(self.get_queryset(), pk=pk)
+
+        try:
+            cancel_prescription(
+                prescription=prescription,
+                cancelled_by=request.user,
             )
         except ValueError as error:
             return Response(
                 {"error": str(error)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        return Response(
+            {"message": f"Prescription #{pk} cancelled successfully."},
+            status=status.HTTP_200_OK,
+        )
