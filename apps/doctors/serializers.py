@@ -45,6 +45,10 @@ class DoctorDirectorySerializer(serializers.ModelSerializer):
 
 
 class DoctorScheduleSerializer(serializers.ModelSerializer):
+    doctor = serializers.PrimaryKeyRelatedField(
+        queryset=DoctorProfile.objects.select_related("user"),
+        required=False,
+    )
     day_of_week_display = serializers.CharField(
         source="get_day_of_week_display",
         read_only=True,
@@ -54,6 +58,7 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
         model = DoctorSchedule
         fields = [
             "id",
+            "doctor",
             "day_of_week",
             "day_of_week_display",
             "start_time",
@@ -65,6 +70,7 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
             "id",
             "day_of_week_display",
         ]
+        validators = []
 
     def validate(self, attrs):
         start_time = attrs.get(
@@ -99,14 +105,41 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
                 )
 
         request = self.context.get("request")
+        doctor = getattr(self.instance, "doctor", None)
+
+        if request:
+            can_manage_all = request.user.has_permission(
+                "can_view_all_doctors"
+            )
+
+            if can_manage_all:
+                doctor = attrs.get("doctor", doctor)
+
+                if self.instance is None and doctor is None:
+                    raise serializers.ValidationError(
+                        {"doctor": "This field is required."}
+                    )
+            else:
+                if "doctor" in attrs:
+                    raise serializers.ValidationError(
+                        {
+                            "doctor": (
+                                "Do not submit a doctor ID when managing "
+                                "your own schedule."
+                            )
+                        }
+                    )
+
+                doctor = getattr(request.user, "doctor_profile", None)
+
         day_of_week = attrs.get(
             "day_of_week",
             getattr(self.instance, "day_of_week", None),
         )
 
-        if request and day_of_week is not None:
+        if doctor and day_of_week is not None:
             schedules = DoctorSchedule.objects.filter(
-                doctor__user=request.user,
+                doctor=doctor,
                 day_of_week=day_of_week,
             )
 
@@ -117,7 +150,7 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {
                         "day_of_week": (
-                            "You already have a schedule for this day."
+                            "A schedule already exists for this doctor and day."
                         )
                     }
                 )

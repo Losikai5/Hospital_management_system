@@ -17,7 +17,7 @@ import type { Appointment } from "@/lib/types";
 const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"] as const;
 
 export default function AppointmentsPage() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,8 @@ export default function AppointmentsPage() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   const runAction = async (id: number, path: string, successMsg: string) => {
@@ -55,19 +56,11 @@ export default function AppointmentsPage() {
 
   if (!user) return null;
 
-  // Mirrors the backend role→permission map (role_permission.json):
-  // the doctor owns his calendar — he confirms/declines his OWN appointments;
-  // the receptionist is read-only lookup (see the Front Desk screen), so no confirm.
-  const canConfirm = user.role === "DOCTOR" || user.role === "ADMIN";
-  const canComplete = user.role === "DOCTOR" || user.role === "ADMIN";
-  const canCancel =
-    user.role === "PATIENT" ||
-    user.role === "DOCTOR" ||
-    user.role === "RECEPTIONIST" ||
-    user.role === "ADMIN";
-
+  const canConfirm = hasPermission("can_confirm_appointments");
+  const canComplete = hasPermission("can_complete_appointments");
+  const canCancel = hasPermission("can_cancel_appointments");
+  const canBook = hasPermission("can_create_appointments");
   const isDoctor = user.role === "DOCTOR";
-  const canBook = user.role === "PATIENT" || user.role === "RECEPTIONIST" || user.role === "ADMIN";
   const heading = isDoctor
     ? { title: "My calendar", description: "Confirm or decline the appointments patients have booked with you." }
     : { title: "Appointments", description: "Manage scheduled visits across the hospital." };

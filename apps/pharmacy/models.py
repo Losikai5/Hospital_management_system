@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
@@ -41,12 +43,12 @@ class Medicine(models.Model):
                               # a TypeError during makemigrations.
                               # Also DecimalField not FloatField — money
                               # must always be stored exactly.
-        validators=[MinValueValidator(0.00)],
+        validators=[MinValueValidator(Decimal("0.00"))],
                               # Edit 5: Added MinValueValidator
                               # Reason: A medicine cannot have a negative price.
                               # This validator enforces that at the
                               # serializer level before saving.
-        default=0.00
+        default=Decimal("0.00")
     )
     unit_type = models.CharField(
         max_length=10,

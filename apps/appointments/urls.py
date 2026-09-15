@@ -1,8 +1,10 @@
 from django.urls import path
-from .views import (
+from .api_views import (
     AppointmentCreateView,
     AppointmentListView,
     AppointmentDetailView,
+)
+from .views import (
     AppointmentCancelView,
     AppointmentConfirmView,
     AppointmentCompleteView,

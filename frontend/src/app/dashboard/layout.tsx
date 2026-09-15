@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { navForRole } from "@/lib/nav";
+import { navForUser } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-context";
 import { Logout04Icon, Cancel01Icon, Menu01Icon } from "hugeicons-react";
 
@@ -13,7 +13,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   if (!user) return null;
 
-  const items = navForRole(user.role);
+  const items = navForUser(user);
 
   return (
     <div className="flex h-full flex-col">

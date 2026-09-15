@@ -93,11 +93,11 @@ class AppointmentListSerializer(serializers.ModelSerializer):
     # Show the human-readable status label instead of 'PENDING'
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
-    def get_doctor_name(self, obj):
+    def get_doctor_name(self, obj) -> str:
         user = obj.doctor.user
         return f"{user.first_name} {user.last_name}".strip() or user.email
 
-    def get_patient_name(self, obj):
+    def get_patient_name(self, obj) -> str:
         user = obj.patient.user
         return f"{user.first_name} {user.last_name}".strip() or user.email
 

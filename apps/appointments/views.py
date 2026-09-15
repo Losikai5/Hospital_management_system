@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import serializers as drf_serializers
@@ -12,8 +12,8 @@ from drf_spectacular.utils import (
 )
 from apps.core.schemas import ErrorResponse, MessageResponse
 from .models import Appointment, AppointmentStatus
-from .serializers import AppointmentCreateSerializer, AppointmentListSerializer
-from .services import book_appointment, cancel_appointment, get_available_slots
+from .serializers import AppointmentListSerializer
+from .services import cancel_appointment, get_available_slots
 from apps.doctors.models import DoctorProfile
 from apps.core.permissions import (
     HasCustomPermission,
@@ -23,90 +23,8 @@ from apps.core.permissions import (
 
 @extend_schema(
     tags=["Appointments"],
-    summary="Book an appointment",
-    description=(
-        "Books an appointment for the currently authenticated patient. "
-        "The patient profile is taken from the authenticated user automatically. "
-        "Slot availability is validated before booking."
-    ),
-    request=AppointmentCreateSerializer,
-    responses={201: AppointmentListSerializer},
-)
-class AppointmentCreateView(generics.CreateAPIView):
-    """Users with the appointment creation permission can book appointments."""
-    serializer_class = AppointmentCreateSerializer
-    permission_classes = [HasCustomPermission]
-    required_permission = 'can_create_appointments'
-
-
-@extend_schema(
-    tags=["Appointments"],
-    summary="List appointments",
-    description=(
-        "Role-aware list of appointments: patients see their own, doctors see "
-        "theirs, and users with `can_view_all_appointments` see everything."
-    ),
-    responses={200: AppointmentListSerializer(many=True)},
-)
-class AppointmentListView(generics.ListAPIView):
-    """Role-aware list — each role sees only what they should."""
-    serializer_class = AppointmentListSerializer
-    permission_classes = [HasCustomPermission]
-    required_permission = 'can_view_appointments'
-
-    def get_queryset(self):
-        # Guard for drf-spectacular schema generation
-        if getattr(self, 'swagger_fake_view', False):
-            return Appointment.objects.none()
-
-        user = self.request.user
-
-        if user.has_permission('can_view_all_appointments'):
-            return Appointment.objects.all().select_related(
-                'doctor__user', 'patient__user'
-            )
-        if user.role_code == 'DOCTOR':
-            return Appointment.objects.filter(
-                doctor__user=user
-            ).select_related('doctor__user', 'patient__user')
-
-        if user.role_code == 'PATIENT':
-            return Appointment.objects.filter(
-                patient__user=user
-            ).select_related('doctor__user', 'patient__user')
-
-        return Appointment.objects.none()
-
-
-@extend_schema(
-    tags=["Appointments"],
-    summary="Get an appointment",
-    description=(
-        "Returns a single appointment. Ownership is enforced: patients and "
-        "doctors can only see appointments they are involved in, unless they "
-        "have `can_view_all_appointments`."
-    ),
-    responses={200: AppointmentListSerializer},
-)
-class AppointmentDetailView(generics.RetrieveAPIView):
-    """View a single appointment — ownership checked by IsAppointmentOwner."""
-    serializer_class = AppointmentListSerializer
-    permission_classes = [HasCustomPermission, IsAppointmentOwner]
-    required_permission = 'can_view_appointments'
-
-    def get_queryset(self):
-        return Appointment.objects.all().select_related(
-            'doctor__user', 'patient__user'
-        )
-
-
-@extend_schema(
-    tags=["Appointments"],
     summary="Cancel an appointment",
-    description=(
-        "Cancels an appointment. Patients cancel their own appointments and "
-        "users with `can_view_all_appointments` can cancel any."
-    ),
+    request=None,
     responses={
         200: MessageResponse,
         400: ErrorResponse,
@@ -139,9 +57,7 @@ class AppointmentCancelView(APIView):
 @extend_schema(
     tags=["Appointments"],
     summary="Confirm an appointment",
-    description=(
-        "Confirms a pending appointment. Only pending appointments can be confirmed."
-    ),
+    request=None,
     responses={
         200: MessageResponse,
         400: ErrorResponse,
@@ -175,10 +91,7 @@ class AppointmentConfirmView(APIView):
 @extend_schema(
     tags=["Appointments"],
     summary="Complete an appointment",
-    description=(
-        "Marks an assigned, confirmed appointment as completed. Only the "
-        "assigned doctor can complete the appointment."
-    ),
+    request=None,
     responses={
         200: MessageResponse,
         400: ErrorResponse,
@@ -214,11 +127,6 @@ class AppointmentCompleteView(APIView):
 @extend_schema(
     tags=["Appointments"],
     summary="Get available time slots",
-    description=(
-        "Returns the available appointment time slots for a doctor on a given "
-        "date, taking the doctor's schedule and already-booked appointments "
-        "into account."
-    ),
     parameters=[
         OpenApiParameter(
             name="doctor_id",

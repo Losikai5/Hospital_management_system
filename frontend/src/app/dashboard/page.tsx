@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -18,49 +17,46 @@ import { AppointmentStatusBadge, LowStockBadge } from "@/components/dashboard/st
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
+import { useApiData } from "@/lib/use-api-data";
 import { formatDate, formatTime } from "@/lib/format";
 import type { Appointment, Doctor, Medicine, Prescription, MedicalRecord } from "@/lib/types";
 
-function useFetch<T>(fn: () => Promise<T>, deps: unknown[]) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setData(await fn());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, deps);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  return { data, error, loading, reload: load };
-}
-
 export default function DashboardPage() {
-  const { user } = useAuth();
-  if (!user) return null;
-  const isPatient = user.role === "PATIENT";
-  const isDoctor = user.role === "DOCTOR";
-  const isPharmacist = user.role === "PHARMACIST";
-  const isAdmin = user.role === "ADMIN";
+  const { user, hasPermission } = useAuth();
+  const isPatient = user?.role === "PATIENT";
+  const isPharmacist = user?.role === "PHARMACIST";
+  const isAdmin = user?.role === "ADMIN";
 
-  const appointments = useFetch<Appointment[]>(() => apiRequest("/appointments/"), []);
-  const doctors = useFetch<Doctor[]>(() => apiRequest("/doctors/"), []);
-  const records = useFetch<MedicalRecord[]>(() => apiRequest("/medical-records/"), []);
-  const medicines = useFetch<Medicine[]>(() => apiRequest("/pharmacy/medicines/"), []);
-  const prescriptions = useFetch<Prescription[]>(
-    () => apiRequest(isPatient ? "/pharmacy/prescriptions/mine/" : "/pharmacy/prescriptions/"),
-    [isPatient]
+  const canViewAppointments = hasPermission("can_view_appointments") || hasPermission("can_view_all_appointments");
+  const canViewDoctors = hasPermission("can_view_doctors") || hasPermission("can_view_all_doctors");
+  const canViewRecords = hasPermission("can_view_medical_records") || hasPermission("can_view_all_medical_records");
+  const canViewMedicines = hasPermission("can_view_medicines") || hasPermission("can_view_all_medicines");
+  const canViewPrescriptions = hasPermission("can_view_prescriptions") || hasPermission("can_view_all_prescriptions");
+
+  const appointments = useApiData<Appointment[]>(
+    () => canViewAppointments ? apiRequest("/appointments/") : Promise.resolve([]),
+    String(canViewAppointments)
   );
+  const doctors = useApiData<Doctor[]>(
+    () => canViewDoctors ? apiRequest("/doctors/") : Promise.resolve([]),
+    String(canViewDoctors)
+  );
+  const records = useApiData<MedicalRecord[]>(
+    () => canViewRecords ? apiRequest("/medical-records/") : Promise.resolve([]),
+    String(canViewRecords)
+  );
+  const medicines = useApiData<Medicine[]>(
+    () => canViewMedicines ? apiRequest("/pharmacy/medicines/") : Promise.resolve([]),
+    String(canViewMedicines)
+  );
+  const prescriptions = useApiData<Prescription[]>(
+    () => canViewPrescriptions
+      ? apiRequest(isPatient ? "/pharmacy/prescriptions/mine/" : "/pharmacy/prescriptions/")
+      : Promise.resolve([]),
+    `${String(canViewPrescriptions)}:${String(isPatient)}`
+  );
+
+  if (!user) return null;
 
   const upcoming = (appointments.data ?? [])
     .filter((a) => a.status === "PENDING" || a.status === "CONFIRMED")

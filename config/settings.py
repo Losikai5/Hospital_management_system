@@ -10,23 +10,37 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+from datetime import timedelta
+import os
 from pathlib import Path
+
 from decouple import config
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+# Environment-driven security settings.
+def csv_config(name, default=""):
+    return [value.strip() for value in config(name, default=default).split(",") if value.strip()]
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-bv!jj%n%9toyu4y=z2#bg=x6mt#2xbw#(w%p7ry3@lan&t0$fn"
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+def debug_value(value):
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on", "debug", "development"}:
+        return True
+    if normalized in {"0", "false", "no", "off", "release", "production"}:
+        return False
+    raise ValueError(f"Invalid DEBUG value: {value}")
 
-ALLOWED_HOSTS = []
+
+DEBUG = config("DEBUG", default=True, cast=debug_value)
+SECRET_KEY = config("SECRET_KEY", default="unsafe-development-key-change-me")
+if not DEBUG and SECRET_KEY == "unsafe-development-key-change-me":
+    raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG=False.")
+
+ALLOWED_HOSTS = csv_config("ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 
 # Application definition
@@ -46,6 +60,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "drf_spectacular",
+    "django_celery_beat",
     'rest_framework_simplejwt.token_blacklist',
 
     # Local apps
@@ -56,22 +71,32 @@ INSTALLED_APPS = [
     "apps.appointments",
     "apps.medical_records",
     "apps.pharmacy",
+    "apps.billing",
+    "apps.notifications",
+    "apps.audit",
     
 ]
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Hospital Management System API',
     'DESCRIPTION': 'API documentation for HMS',
     'VERSION': '1.0.0',
+    'ENUM_NAME_OVERRIDES': {
+        'AppointmentStatusEnum': 'apps.appointments.models.AppointmentStatus',
+        'PrescriptionStatusEnum': 'apps.pharmacy.models.PrescriptionStatus',
+        'InvoiceStatusEnum': 'apps.billing.models.InvoiceStatus',
+    },
 }
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.audit.middleware.AuditLogMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -94,20 +119,49 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 AUTH_USER_MODEL = 'users.CustomUser'
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
     ),
-    'DEFAULT_FILTER_BACKENDS': (
-        'django_filters.rest_framework.DjangoFilterBackend',
+    "DEFAULT_FILTER_BACKENDS": (
+        "django_filters.rest_framework.DjangoFilterBackend",
     ),
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": config("API_ANON_THROTTLE_RATE", default="120/min"),
+        "user": config("API_USER_THROTTLE_RATE", default="1200/min"),
+    },
 }
 
-# CORS
-CORS_ALLOW_ALL_ORIGINS = True
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=config("JWT_ACCESS_MINUTES", default=15, cast=int)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=config("JWT_REFRESH_DAYS", default=7, cast=int)
+    ),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+}
+
+# The browser talks to the same-origin Next.js proxy. Keep direct API origins explicit.
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = csv_config(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000",
+)
+CSRF_TRUSTED_ORIGINS = csv_config(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:3000",
+)
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Database
@@ -121,8 +175,13 @@ DATABASES = {
         "PASSWORD": config("DB_PASSWORD"),
         "HOST": config("DB_HOST", default="localhost"),
         "PORT": config("DB_PORT", default="5432"),
+        "CONN_MAX_AGE": config("DB_CONN_MAX_AGE", default=60, cast=int),
+        "CONN_HEALTH_CHECKS": True,
     }
 }
+DB_SSLMODE = config("DB_SSLMODE", default="")
+if DB_SSLMODE:
+    DATABASES["default"]["OPTIONS"] = {"sslmode": DB_SSLMODE}
 
 
 # Password validation
@@ -158,14 +217,90 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
-import os
-
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
 
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 STAFF_INVITATION_EXPIRY_HOURS = config('STAFF_INVITATION_EXPIRY_HOURS', default=48, cast=int)
+
+# Background jobs
+CELERY_BROKER_URL = config(
+    "CELERY_BROKER_URL",
+    default="redis://localhost:6379/0",
+)
+CELERY_RESULT_BACKEND = config(
+    "CELERY_RESULT_BACKEND",
+    default="redis://localhost:6379/1",
+)
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 5 * 60
+
+NOTIFICATIONS_ENABLED = config(
+    "NOTIFICATIONS_ENABLED",
+    default=False,
+    cast=bool,
+)
+
+APPOINTMENT_REMINDER_HOURS = config(
+    "APPOINTMENT_REMINDER_HOURS",
+    default=24,
+    cast=int,
+)
+APPOINTMENT_REMINDER_WINDOW_MINUTES = config(
+    "APPOINTMENT_REMINDER_WINDOW_MINUTES",
+    default=60,
+    cast=int,
+)
+CELERY_BEAT_SCHEDULE = {
+    "discover-upcoming-appointment-reminders": {
+        "task": (
+            "apps.notifications.tasks."
+            "discover_upcoming_appointment_reminders"
+        ),
+        "schedule": 60 * 60,
+    },
+} if NOTIFICATIONS_ENABLED else {}
+# Reverse proxy and HTTPS controls. Production defaults are secure when DEBUG=False.
+USE_X_FORWARDED_PROTO = config("USE_X_FORWARDED_PROTO", default=False, cast=bool)
+if USE_X_FORWARDED_PROTO:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool
+)
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)
+AUDIT_TRUST_X_FORWARDED_FOR = config(
+    "AUDIT_TRUST_X_FORWARDED_FOR",
+    default=False,
+    cast=bool,
+)

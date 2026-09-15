@@ -34,6 +34,13 @@
       "description": "Manages medicine inventory and dispenses prescriptions.",
       "is_active": true,
       "is_system": true
+    },
+    {
+      "code": "MANAGER",
+      "name": "Manager",
+      "description": "Reviews appointments and manages roles and permissions.",
+      "is_active": true,
+      "is_system": false
     }
   ]
 }

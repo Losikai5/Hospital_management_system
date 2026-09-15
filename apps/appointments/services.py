@@ -76,6 +76,7 @@ def book_appointment(patient, doctor, appointment_date, appointment_time, reason
     return appointment
 
 
+@transaction.atomic
 def cancel_appointment(appointment, cancelled_by):
     """Cancel an appointment"""
     if appointment.status == AppointmentStatus.COMPLETED:
@@ -85,5 +86,12 @@ def cancel_appointment(appointment, cancelled_by):
         raise ValueError("Appointment is already cancelled")
 
     appointment.status = AppointmentStatus.CANCELLED
-    appointment.save()
+    appointment.save(update_fields=["status", "updated_at"])
+
+    from apps.notifications.triggers import queue_appointment_cancellation
+
+    queue_appointment_cancellation(
+        appointment=appointment,
+        cancelled_by=cancelled_by,
+    )
     return appointment
