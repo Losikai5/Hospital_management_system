@@ -11,6 +11,23 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+from channels.routing import ProtocolTypeRouter, URLRouter
 
-application = get_asgi_application()
+from apps.core.websocketauth import JwtWebSocketAuthMiddleware
+from .routing import websocket_urlpatterns
+
+
+os.environ.setdefault(
+    "DJANGO_SETTINGS_MODULE",
+    "config.settings",
+)
+
+
+django_asgi_app = get_asgi_application()
+
+
+application = ProtocolTypeRouter({
+    "http": django_asgi_app,
+
+    "websocket": JwtWebSocketAuthMiddleware(URLRouter(websocket_urlpatterns)),
+})

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
+import { AiChatWidget } from "@/components/ai/ai-chat-widget";
 import { useAuth } from "@/lib/auth-context";
 import {
   Appointment01Icon,
@@ -568,6 +569,7 @@ export default function HomePage() {
         <CTA />
       </main>
       <Footer />
+      <AiChatWidget />
     </div>
   );
 }
