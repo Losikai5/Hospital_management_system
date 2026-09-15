@@ -46,7 +46,8 @@ ALLOWED_HOSTS = csv_config("ALLOWED_HOSTS", "localhost,127.0.0.1")
 # Application definition
 
 INSTALLED_APPS = [
-    # Django defaults
+    
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -75,6 +76,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.audit",
     
+    "channels",
 ]
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Hospital Management System API',
@@ -117,6 +119,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 AUTH_USER_MODEL = 'users.CustomUser'
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

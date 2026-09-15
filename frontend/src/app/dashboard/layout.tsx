@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navForUser } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-context";
+import { AiChatWidget } from "@/components/ai/ai-chat-widget";
 import { Logout04Icon, Cancel01Icon, Menu01Icon } from "hugeicons-react";
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -141,6 +142,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
       </div>
+      <AiChatWidget />
     </div>
   );
 }

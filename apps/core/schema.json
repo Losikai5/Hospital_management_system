@@ -1,0 +1,3277 @@
+{
+  "appointments.Appointment": {
+    "db_table": "appointments_appointment",
+    "verbose_name": "Appointments",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "doctor_id",
+        "field_name": "doctor",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "doctor",
+        "references": "doctors.DoctorProfile",
+        "on_delete": "PROTECT",
+        "related_name": "appointments",
+        "db_index": true
+      },
+      {
+        "name": "patient_id",
+        "field_name": "patient",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "patient",
+        "references": "patients.PatientProfile",
+        "on_delete": "PROTECT",
+        "related_name": "appointments",
+        "db_index": true
+      },
+      {
+        "name": "appointment_date",
+        "field_name": "appointment_date",
+        "field_type": "DateField",
+        "pg_type": "date",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "appointment date"
+      },
+      {
+        "name": "appointment_time",
+        "field_name": "appointment_time",
+        "field_type": "TimeField",
+        "pg_type": "time",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "appointment time"
+      },
+      {
+        "name": "status",
+        "field_name": "status",
+        "field_type": "CharField",
+        "pg_type": "varchar(20)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "PENDING",
+        "max_length": 20,
+        "choices": [
+          {
+            "value": "PENDING",
+            "label": "Pending"
+          },
+          {
+            "value": "CONFIRMED",
+            "label": "Confirmed"
+          },
+          {
+            "value": "CANCELLED",
+            "label": "Cancelled"
+          },
+          {
+            "value": "COMPLETED",
+            "label": "Completed"
+          },
+          {
+            "value": "NO_SHOW",
+            "label": "No Show"
+          }
+        ],
+        "validators": [
+          "max length: 20"
+        ],
+        "verbose_name": "status"
+      },
+      {
+        "name": "reason",
+        "field_name": "reason",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "reason"
+      },
+      {
+        "name": "notes",
+        "field_name": "notes",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "notes"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      },
+      {
+        "name": "updated_at",
+        "field_name": "updated_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "updated at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "doctor_id",
+        "references": "doctors.DoctorProfile",
+        "db_table": "doctors_doctorprofile",
+        "on_delete": "PROTECT",
+        "related_name": "appointments"
+      },
+      {
+        "column": "patient_id",
+        "references": "patients.PatientProfile",
+        "db_table": "patients_patientprofile",
+        "on_delete": "PROTECT",
+        "related_name": "appointments"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "unique_non_cancelled_doctor_appointment_slot",
+        "type": "UNIQUE",
+        "columns": [
+          "doctor_id",
+          "appointment_date",
+          "appointment_time"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "appointments_appointment_doctor_id_fb58c3a1",
+        "columns": [
+          "doctor_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "appointments_appointment_patient_id_631d13da",
+        "columns": [
+          "patient_id"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "-appointment_date",
+      "-appointment_time"
+    ]
+  },
+  "audit.AuditLog": {
+    "db_table": "audit_auditlog",
+    "verbose_name": "Audit logs",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "actor_id",
+        "field_name": "actor",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "*int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "actor",
+        "references": "users.CustomUser",
+        "on_delete": "SET_NULL",
+        "related_name": "audit_logs",
+        "db_index": true
+      },
+      {
+        "name": "actor_email",
+        "field_name": "actor_email",
+        "field_type": "EmailField",
+        "pg_type": "varchar(254)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "",
+        "max_length": 254,
+        "validators": [
+          "email format",
+          "max length: 254"
+        ],
+        "verbose_name": "actor email"
+      },
+      {
+        "name": "action",
+        "field_name": "action",
+        "field_type": "CharField",
+        "pg_type": "varchar(160)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 160,
+        "validators": [
+          "max length: 160"
+        ],
+        "verbose_name": "action"
+      },
+      {
+        "name": "method",
+        "field_name": "method",
+        "field_type": "CharField",
+        "pg_type": "varchar(10)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 10,
+        "validators": [
+          "max length: 10"
+        ],
+        "verbose_name": "method"
+      },
+      {
+        "name": "path",
+        "field_name": "path",
+        "field_type": "CharField",
+        "pg_type": "varchar(500)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 500,
+        "validators": [
+          "max length: 500"
+        ],
+        "verbose_name": "path"
+      },
+      {
+        "name": "status_code",
+        "field_name": "status_code",
+        "field_type": "PositiveSmallIntegerField",
+        "pg_type": "smallint",
+        "go_type": "uint16",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: 0",
+          "max value: 32767"
+        ],
+        "verbose_name": "status code"
+      },
+      {
+        "name": "resource_type",
+        "field_name": "resource_type",
+        "field_type": "CharField",
+        "pg_type": "varchar(100)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "",
+        "max_length": 100,
+        "validators": [
+          "max length: 100"
+        ],
+        "verbose_name": "resource type"
+      },
+      {
+        "name": "resource_id",
+        "field_name": "resource_id",
+        "field_type": "CharField",
+        "pg_type": "varchar(100)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "",
+        "max_length": 100,
+        "validators": [
+          "max length: 100"
+        ],
+        "verbose_name": "resource id"
+      },
+      {
+        "name": "ip_address",
+        "field_name": "ip_address",
+        "field_type": "GenericIPAddressField",
+        "pg_type": "inet",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 39,
+        "validators": [
+          "function"
+        ],
+        "verbose_name": "ip address"
+      },
+      {
+        "name": "user_agent",
+        "field_name": "user_agent",
+        "field_type": "CharField",
+        "pg_type": "varchar(500)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "",
+        "max_length": 500,
+        "validators": [
+          "max length: 500"
+        ],
+        "verbose_name": "user agent"
+      },
+      {
+        "name": "request_id",
+        "field_name": "request_id",
+        "field_type": "CharField",
+        "pg_type": "varchar(100)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 100,
+        "validators": [
+          "max length: 100"
+        ],
+        "verbose_name": "request id",
+        "db_index": true
+      },
+      {
+        "name": "metadata",
+        "field_name": "metadata",
+        "field_type": "JSONField",
+        "pg_type": "jsonb",
+        "go_type": "json.RawMessage",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "<callable>",
+        "verbose_name": "metadata"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at",
+        "db_index": true
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "actor_id",
+        "references": "users.CustomUser",
+        "db_table": "users_customuser",
+        "on_delete": "SET_NULL",
+        "related_name": "audit_logs"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "audit_auditlog_status_code_check",
+        "type": "CHECK",
+        "columns": [
+          "status_code"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "audit_actor_time_idx",
+        "columns": [
+          "actor_email",
+          "created_at"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "audit_auditlog_actor_id_20e70a27",
+        "columns": [
+          "actor_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "audit_auditlog_created_at_5c532845",
+        "columns": [
+          "created_at"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "audit_auditlog_request_id_2112ce31",
+        "columns": [
+          "request_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "audit_auditlog_request_id_2112ce31_like",
+        "columns": [
+          "request_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "audit_resource_idx",
+        "columns": [
+          "resource_type",
+          "resource_id"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "-created_at"
+    ]
+  },
+  "billing.Invoice": {
+    "db_table": "billing_invoice",
+    "verbose_name": "Invoices",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "appointment_id",
+        "field_name": "appointment",
+        "field_type": "OneToOneField",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "appointment",
+        "references": "appointments.Appointment",
+        "on_delete": "PROTECT",
+        "related_name": "invoice"
+      },
+      {
+        "name": "total_amount",
+        "field_name": "total_amount",
+        "field_type": "DecimalField",
+        "pg_type": "numeric(12,2)",
+        "go_type": "float64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "0.00",
+        "max_digits": 12,
+        "decimal_places": 2,
+        "validators": [
+          "min value: 0.00",
+          "decimal(max_digits=12, decimal_places=2)"
+        ],
+        "verbose_name": "total amount"
+      },
+      {
+        "name": "amount_paid",
+        "field_name": "amount_paid",
+        "field_type": "DecimalField",
+        "pg_type": "numeric(12,2)",
+        "go_type": "float64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "0.00",
+        "max_digits": 12,
+        "decimal_places": 2,
+        "validators": [
+          "min value: 0.00",
+          "decimal(max_digits=12, decimal_places=2)"
+        ],
+        "verbose_name": "amount paid"
+      },
+      {
+        "name": "status",
+        "field_name": "status",
+        "field_type": "CharField",
+        "pg_type": "varchar(10)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "UNPAID",
+        "max_length": 10,
+        "choices": [
+          {
+            "value": "UNPAID",
+            "label": "Unpaid"
+          },
+          {
+            "value": "PARTIAL",
+            "label": "Partially paid"
+          },
+          {
+            "value": "PAID",
+            "label": "Paid"
+          }
+        ],
+        "validators": [
+          "max length: 10"
+        ],
+        "verbose_name": "status"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      },
+      {
+        "name": "updated_at",
+        "field_name": "updated_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "updated at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "appointment_id",
+        "references": "appointments.Appointment",
+        "db_table": "appointments_appointment",
+        "on_delete": "PROTECT",
+        "related_name": "invoice",
+        "type": "OneToOne"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "billing_invoice_appointment_id_key",
+        "type": "UNIQUE",
+        "columns": [
+          "appointment_id"
+        ]
+      }
+    ],
+    "indexes": [],
+    "unique_together": [],
+    "ordering": [
+      "-created_at"
+    ]
+  },
+  "billing.InvoiceItem": {
+    "db_table": "billing_invoiceitem",
+    "verbose_name": "Invoice items",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "invoice_id",
+        "field_name": "invoice",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "invoice",
+        "references": "billing.Invoice",
+        "on_delete": "CASCADE",
+        "related_name": "items",
+        "db_index": true
+      },
+      {
+        "name": "description",
+        "field_name": "description",
+        "field_type": "CharField",
+        "pg_type": "varchar(255)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 255,
+        "validators": [
+          "max length: 255"
+        ],
+        "verbose_name": "description"
+      },
+      {
+        "name": "quantity",
+        "field_name": "quantity",
+        "field_type": "PositiveIntegerField",
+        "pg_type": "integer",
+        "go_type": "uint32",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: 1",
+          "max value: 2147483647"
+        ],
+        "verbose_name": "quantity"
+      },
+      {
+        "name": "unit_price",
+        "field_name": "unit_price",
+        "field_type": "DecimalField",
+        "pg_type": "numeric(12,2)",
+        "go_type": "float64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_digits": 12,
+        "decimal_places": 2,
+        "validators": [
+          "min value: 0.00",
+          "decimal(max_digits=12, decimal_places=2)"
+        ],
+        "verbose_name": "unit price"
+      },
+      {
+        "name": "total",
+        "field_name": "total",
+        "field_type": "DecimalField",
+        "pg_type": "numeric(12,2)",
+        "go_type": "float64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_digits": 12,
+        "decimal_places": 2,
+        "validators": [
+          "min value: 0.00",
+          "decimal(max_digits=12, decimal_places=2)"
+        ],
+        "verbose_name": "total"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "invoice_id",
+        "references": "billing.Invoice",
+        "db_table": "billing_invoice",
+        "on_delete": "CASCADE",
+        "related_name": "items"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "billing_invoiceitem_quantity_check",
+        "type": "CHECK",
+        "columns": [
+          "quantity"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "billing_invoiceitem_invoice_id_f74c08c6",
+        "columns": [
+          "invoice_id"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "id"
+    ]
+  },
+  "billing.InvoicePayment": {
+    "db_table": "billing_invoicepayment",
+    "verbose_name": "Invoice payments",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "invoice_id",
+        "field_name": "invoice",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "invoice",
+        "references": "billing.Invoice",
+        "on_delete": "PROTECT",
+        "related_name": "payments",
+        "db_index": true
+      },
+      {
+        "name": "amount",
+        "field_name": "amount",
+        "field_type": "DecimalField",
+        "pg_type": "numeric(12,2)",
+        "go_type": "float64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_digits": 12,
+        "decimal_places": 2,
+        "validators": [
+          "min value: 0.01",
+          "decimal(max_digits=12, decimal_places=2)"
+        ],
+        "verbose_name": "amount"
+      },
+      {
+        "name": "method",
+        "field_name": "method",
+        "field_type": "CharField",
+        "pg_type": "varchar(20)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 20,
+        "choices": [
+          {
+            "value": "CASH",
+            "label": "Cash"
+          },
+          {
+            "value": "CARD",
+            "label": "Card"
+          },
+          {
+            "value": "MOBILE_MONEY",
+            "label": "Mobile money"
+          },
+          {
+            "value": "INSURANCE",
+            "label": "Insurance"
+          },
+          {
+            "value": "BANK_TRANSFER",
+            "label": "Bank transfer"
+          }
+        ],
+        "validators": [
+          "max length: 20"
+        ],
+        "verbose_name": "method"
+      },
+      {
+        "name": "reference",
+        "field_name": "reference",
+        "field_type": "CharField",
+        "pg_type": "varchar(150)",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": true,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 150,
+        "validators": [
+          "max length: 150"
+        ],
+        "verbose_name": "reference"
+      },
+      {
+        "name": "notes",
+        "field_name": "notes",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "",
+        "verbose_name": "notes"
+      },
+      {
+        "name": "recorded_by_id",
+        "field_name": "recorded_by",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "recorded by",
+        "references": "users.CustomUser",
+        "on_delete": "PROTECT",
+        "related_name": "recorded_invoice_payments",
+        "db_index": true
+      },
+      {
+        "name": "paid_at",
+        "field_name": "paid_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "paid at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "invoice_id",
+        "references": "billing.Invoice",
+        "db_table": "billing_invoice",
+        "on_delete": "PROTECT",
+        "related_name": "payments"
+      },
+      {
+        "column": "recorded_by_id",
+        "references": "users.CustomUser",
+        "db_table": "users_customuser",
+        "on_delete": "PROTECT",
+        "related_name": "recorded_invoice_payments"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "billing_invoicepayment_reference_key",
+        "type": "UNIQUE",
+        "columns": [
+          "reference"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "billing_invoicepayment_invoice_id_e615ae70",
+        "columns": [
+          "invoice_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "billing_invoicepayment_recorded_by_id_38133123",
+        "columns": [
+          "recorded_by_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "billing_invoicepayment_reference_c288af2f_like",
+        "columns": [
+          "reference"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "paid_at",
+      "id"
+    ]
+  },
+  "doctors.DoctorProfile": {
+    "db_table": "doctors_doctorprofile",
+    "verbose_name": "Doctor Profiles",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "user_id",
+        "field_name": "user",
+        "field_type": "OneToOneField",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "user",
+        "references": "users.CustomUser",
+        "on_delete": "PROTECT",
+        "related_name": "doctor_profile"
+      },
+      {
+        "name": "specialization",
+        "field_name": "specialization",
+        "field_type": "CharField",
+        "pg_type": "varchar(50)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "GENERAL",
+        "max_length": 50,
+        "choices": [
+          {
+            "value": "GENERAL",
+            "label": "General Practice"
+          },
+          {
+            "value": "CARDIOLOGY",
+            "label": "Cardiology"
+          },
+          {
+            "value": "DERMATOLOGY",
+            "label": "Dermatology"
+          },
+          {
+            "value": "NEUROLOGY",
+            "label": "Neurology"
+          },
+          {
+            "value": "ORTHOPEDICS",
+            "label": "Orthopedics"
+          },
+          {
+            "value": "PEDIATRICS",
+            "label": "Pediatrics"
+          },
+          {
+            "value": "PSYCHIATRY",
+            "label": "Psychiatry"
+          },
+          {
+            "value": "RADIOLOGY",
+            "label": "Radiology"
+          },
+          {
+            "value": "SURGERY",
+            "label": "Surgery"
+          },
+          {
+            "value": "GYNECOLOGY",
+            "label": "Gynecology"
+          }
+        ],
+        "validators": [
+          "max length: 50"
+        ],
+        "verbose_name": "specialization"
+      },
+      {
+        "name": "license_number",
+        "field_name": "license_number",
+        "field_type": "CharField",
+        "pg_type": "varchar(100)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 100,
+        "validators": [
+          "max length: 100"
+        ],
+        "verbose_name": "license number"
+      },
+      {
+        "name": "years_of_experience",
+        "field_name": "years_of_experience",
+        "field_type": "PositiveIntegerField",
+        "pg_type": "integer",
+        "go_type": "uint32",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": 0,
+        "validators": [
+          "min value: 0",
+          "max value: 2147483647"
+        ],
+        "verbose_name": "years of experience"
+      },
+      {
+        "name": "bio",
+        "field_name": "bio",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "bio"
+      },
+      {
+        "name": "consultation_fee",
+        "field_name": "consultation_fee",
+        "field_type": "DecimalField",
+        "pg_type": "numeric(10,2)",
+        "go_type": "float64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": 0.0,
+        "max_digits": 10,
+        "decimal_places": 2,
+        "validators": [
+          "decimal(max_digits=10, decimal_places=2)"
+        ],
+        "verbose_name": "consultation fee"
+      },
+      {
+        "name": "is_available",
+        "field_name": "is_available",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": true,
+        "verbose_name": "is available"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      },
+      {
+        "name": "updated_at",
+        "field_name": "updated_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "updated at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "user_id",
+        "references": "users.CustomUser",
+        "db_table": "users_customuser",
+        "on_delete": "PROTECT",
+        "related_name": "doctor_profile",
+        "type": "OneToOne"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "doctors_doctorprofile_years_of_experience_check",
+        "type": "CHECK",
+        "columns": [
+          "years_of_experience"
+        ]
+      },
+      {
+        "name": "doctors_doctorprofile_license_number_key",
+        "type": "UNIQUE",
+        "columns": [
+          "license_number"
+        ]
+      },
+      {
+        "name": "doctors_doctorprofile_user_id_key",
+        "type": "UNIQUE",
+        "columns": [
+          "user_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "doctors_doctorprofile_license_number_06e8b7df_like",
+        "columns": [
+          "license_number"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": []
+  },
+  "doctors.DoctorSchedule": {
+    "db_table": "doctors_doctorschedule",
+    "verbose_name": "Doctor Schedules",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "doctor_id",
+        "field_name": "doctor",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "doctor",
+        "references": "doctors.DoctorProfile",
+        "on_delete": "CASCADE",
+        "related_name": "schedules",
+        "db_index": true
+      },
+      {
+        "name": "day_of_week",
+        "field_name": "day_of_week",
+        "field_type": "PositiveSmallIntegerField",
+        "pg_type": "smallint",
+        "go_type": "uint16",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "choices": [
+          {
+            "value": 0,
+            "label": "Monday"
+          },
+          {
+            "value": 1,
+            "label": "Tuesday"
+          },
+          {
+            "value": 2,
+            "label": "Wednesday"
+          },
+          {
+            "value": 3,
+            "label": "Thursday"
+          },
+          {
+            "value": 4,
+            "label": "Friday"
+          },
+          {
+            "value": 5,
+            "label": "Saturday"
+          },
+          {
+            "value": 6,
+            "label": "Sunday"
+          }
+        ],
+        "validators": [
+          "min value: 0",
+          "max value: 32767"
+        ],
+        "verbose_name": "day of week"
+      },
+      {
+        "name": "start_time",
+        "field_name": "start_time",
+        "field_type": "TimeField",
+        "pg_type": "time",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "start time"
+      },
+      {
+        "name": "end_time",
+        "field_name": "end_time",
+        "field_type": "TimeField",
+        "pg_type": "time",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "end time"
+      },
+      {
+        "name": "session_duration",
+        "field_name": "session_duration",
+        "field_type": "PositiveIntegerField",
+        "pg_type": "integer",
+        "go_type": "uint32",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": 30,
+        "validators": [
+          "min value: 1",
+          "max value: 2147483647"
+        ],
+        "verbose_name": "session duration",
+        "help_text": "Duration in minutes"
+      },
+      {
+        "name": "is_available",
+        "field_name": "is_available",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": true,
+        "verbose_name": "is available"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "doctor_id",
+        "references": "doctors.DoctorProfile",
+        "db_table": "doctors_doctorprofile",
+        "on_delete": "CASCADE",
+        "related_name": "schedules"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "doctors_doctorschedule_day_of_week_check",
+        "type": "CHECK",
+        "columns": [
+          "day_of_week"
+        ]
+      },
+      {
+        "name": "doctors_doctorschedule_session_duration_check",
+        "type": "CHECK",
+        "columns": [
+          "session_duration"
+        ]
+      },
+      {
+        "name": "doctors_doctorschedule_doctor_id_day_of_week_938d0396_uniq",
+        "type": "UNIQUE",
+        "columns": [
+          "doctor_id",
+          "day_of_week"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "doctors_doctorschedule_doctor_id_771dc8bf",
+        "columns": [
+          "doctor_id"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [
+      [
+        "doctor",
+        "day_of_week"
+      ]
+    ],
+    "ordering": [
+      "day_of_week",
+      "start_time"
+    ]
+  },
+  "medical_records.MedicalRecord": {
+    "db_table": "medical_records_medicalrecord",
+    "verbose_name": "Medical Records",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "appointment_id",
+        "field_name": "appointment",
+        "field_type": "OneToOneField",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "appointment",
+        "references": "appointments.Appointment",
+        "on_delete": "PROTECT",
+        "related_name": "medical_record"
+      },
+      {
+        "name": "diagnosis",
+        "field_name": "diagnosis",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "diagnosis"
+      },
+      {
+        "name": "treatment_prescribed",
+        "field_name": "treatment_prescribed",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "treatment prescribed"
+      },
+      {
+        "name": "notes",
+        "field_name": "notes",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "notes"
+      },
+      {
+        "name": "attachments",
+        "field_name": "attachments",
+        "field_type": "FileField",
+        "pg_type": "varchar(100)",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 100,
+        "verbose_name": "attachments",
+        "upload_to": "medical_records/%Y/%m/%d/"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      },
+      {
+        "name": "updated_at",
+        "field_name": "updated_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "updated at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "appointment_id",
+        "references": "appointments.Appointment",
+        "db_table": "appointments_appointment",
+        "on_delete": "PROTECT",
+        "related_name": "medical_record",
+        "type": "OneToOne"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "medical_records_medicalrecord_appointment_id_key",
+        "type": "UNIQUE",
+        "columns": [
+          "appointment_id"
+        ]
+      }
+    ],
+    "indexes": [],
+    "unique_together": [],
+    "ordering": [
+      "-created_at"
+    ]
+  },
+  "notifications.NotificationEvent": {
+    "db_table": "notifications_notificationevent",
+    "verbose_name": "Notification events",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "event_type",
+        "field_name": "event_type",
+        "field_type": "CharField",
+        "pg_type": "varchar(40)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 40,
+        "choices": [
+          {
+            "value": "APPOINTMENT_REMINDER",
+            "label": "Appointment reminder"
+          },
+          {
+            "value": "APPOINTMENT_CANCELLATION",
+            "label": "Appointment cancellation"
+          },
+          {
+            "value": "LOW_STOCK",
+            "label": "Low stock"
+          }
+        ],
+        "validators": [
+          "max length: 40"
+        ],
+        "verbose_name": "event type"
+      },
+      {
+        "name": "deduplication_key",
+        "field_name": "deduplication_key",
+        "field_type": "CharField",
+        "pg_type": "varchar(160)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 160,
+        "validators": [
+          "max length: 160"
+        ],
+        "verbose_name": "deduplication key"
+      },
+      {
+        "name": "appointment_id",
+        "field_name": "appointment",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "*int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "appointment",
+        "references": "appointments.Appointment",
+        "on_delete": "PROTECT",
+        "related_name": "notification_events",
+        "db_index": true
+      },
+      {
+        "name": "medicine_id",
+        "field_name": "medicine",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "*int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "medicine",
+        "references": "pharmacy.Medicine",
+        "on_delete": "PROTECT",
+        "related_name": "notification_events",
+        "db_index": true
+      },
+      {
+        "name": "sent_at",
+        "field_name": "sent_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "*time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "sent at"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "appointment_id",
+        "references": "appointments.Appointment",
+        "db_table": "appointments_appointment",
+        "on_delete": "PROTECT",
+        "related_name": "notification_events"
+      },
+      {
+        "column": "medicine_id",
+        "references": "pharmacy.Medicine",
+        "db_table": "pharmacy_medicine",
+        "on_delete": "PROTECT",
+        "related_name": "notification_events"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "notifications_notificationevent_deduplication_key_key",
+        "type": "UNIQUE",
+        "columns": [
+          "deduplication_key"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "notifications_notificationevent_appointment_id_023e3a4c",
+        "columns": [
+          "appointment_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "notifications_notificationevent_deduplication_key_44fc4b4c_like",
+        "columns": [
+          "deduplication_key"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "notifications_notificationevent_medicine_id_6fd4a3e2",
+        "columns": [
+          "medicine_id"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "-created_at"
+    ]
+  },
+  "patients.PatientProfile": {
+    "db_table": "patients_patientprofile",
+    "verbose_name": "Patient Profiles",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "user_id",
+        "field_name": "user",
+        "field_type": "OneToOneField",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "user",
+        "references": "users.CustomUser",
+        "on_delete": "PROTECT",
+        "related_name": "patient_profile"
+      },
+      {
+        "name": "blood_type",
+        "field_name": "blood_type",
+        "field_type": "CharField",
+        "pg_type": "varchar(5)",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 5,
+        "choices": [
+          {
+            "value": "A+",
+            "label": "A+"
+          },
+          {
+            "value": "A-",
+            "label": "A-"
+          },
+          {
+            "value": "B+",
+            "label": "B+"
+          },
+          {
+            "value": "B-",
+            "label": "B-"
+          },
+          {
+            "value": "AB+",
+            "label": "AB+"
+          },
+          {
+            "value": "AB-",
+            "label": "AB-"
+          },
+          {
+            "value": "O+",
+            "label": "O+"
+          },
+          {
+            "value": "O-",
+            "label": "O-"
+          }
+        ],
+        "validators": [
+          "max length: 5"
+        ],
+        "verbose_name": "blood type"
+      },
+      {
+        "name": "emergency_contact_name",
+        "field_name": "emergency_contact_name",
+        "field_type": "CharField",
+        "pg_type": "varchar(255)",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 255,
+        "validators": [
+          "max length: 255"
+        ],
+        "verbose_name": "emergency contact name"
+      },
+      {
+        "name": "emergency_contact_phone",
+        "field_name": "emergency_contact_phone",
+        "field_type": "CharField",
+        "pg_type": "varchar(15)",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 15,
+        "validators": [
+          "max length: 15"
+        ],
+        "verbose_name": "emergency contact phone"
+      },
+      {
+        "name": "medical_history_summary",
+        "field_name": "medical_history_summary",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "medical history summary"
+      },
+      {
+        "name": "insurance_details",
+        "field_name": "insurance_details",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "insurance details"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      },
+      {
+        "name": "updated_at",
+        "field_name": "updated_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "updated at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "user_id",
+        "references": "users.CustomUser",
+        "db_table": "users_customuser",
+        "on_delete": "PROTECT",
+        "related_name": "patient_profile",
+        "type": "OneToOne"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "patients_patientprofile_user_id_key",
+        "type": "UNIQUE",
+        "columns": [
+          "user_id"
+        ]
+      }
+    ],
+    "indexes": [],
+    "unique_together": [],
+    "ordering": []
+  },
+  "pharmacy.Medicine": {
+    "db_table": "pharmacy_medicine",
+    "verbose_name": "Medicines",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "name",
+        "field_name": "name",
+        "field_type": "CharField",
+        "pg_type": "varchar(255)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 255,
+        "validators": [
+          "max length: 255"
+        ],
+        "verbose_name": "name"
+      },
+      {
+        "name": "stock_quantity",
+        "field_name": "stock_quantity",
+        "field_type": "PositiveIntegerField",
+        "pg_type": "integer",
+        "go_type": "uint32",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": 0,
+        "validators": [
+          "min value: 0",
+          "max value: 2147483647"
+        ],
+        "verbose_name": "stock quantity"
+      },
+      {
+        "name": "unit_cost",
+        "field_name": "unit_cost",
+        "field_type": "DecimalField",
+        "pg_type": "numeric(10,2)",
+        "go_type": "float64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "0.00",
+        "max_digits": 10,
+        "decimal_places": 2,
+        "validators": [
+          "min value: 0.00",
+          "decimal(max_digits=10, decimal_places=2)"
+        ],
+        "verbose_name": "unit cost"
+      },
+      {
+        "name": "unit_type",
+        "field_name": "unit_type",
+        "field_type": "CharField",
+        "pg_type": "varchar(10)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "tablet",
+        "max_length": 10,
+        "choices": [
+          {
+            "value": "tablet",
+            "label": "Tablet(s)"
+          },
+          {
+            "value": "capsule",
+            "label": "Capsule(s)"
+          },
+          {
+            "value": "ml",
+            "label": "Milliliters (ml)"
+          },
+          {
+            "value": "mg",
+            "label": "Milligrams (mg)"
+          },
+          {
+            "value": "g",
+            "label": "Grams (g)"
+          },
+          {
+            "value": "vial",
+            "label": "Vial(s)"
+          },
+          {
+            "value": "bottle",
+            "label": "Bottle(s)"
+          }
+        ],
+        "validators": [
+          "max length: 10"
+        ],
+        "verbose_name": "unit type"
+      },
+      {
+        "name": "low_stock_threshold",
+        "field_name": "low_stock_threshold",
+        "field_type": "PositiveIntegerField",
+        "pg_type": "integer",
+        "go_type": "uint32",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": 10,
+        "validators": [
+          "min value: 1",
+          "max value: 2147483647"
+        ],
+        "verbose_name": "low stock threshold"
+      },
+      {
+        "name": "description",
+        "field_name": "description",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "description"
+      },
+      {
+        "name": "is_active",
+        "field_name": "is_active",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": true,
+        "verbose_name": "is active"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      },
+      {
+        "name": "updated_at",
+        "field_name": "updated_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "updated at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "pharmacy_medicine_stock_quantity_check",
+        "type": "CHECK",
+        "columns": [
+          "stock_quantity"
+        ]
+      },
+      {
+        "name": "pharmacy_medicine_low_stock_threshold_check",
+        "type": "CHECK",
+        "columns": [
+          "low_stock_threshold"
+        ]
+      },
+      {
+        "name": "pharmacy_medicine_name_key",
+        "type": "UNIQUE",
+        "columns": [
+          "name"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "pharmacy_medicine_name_de5baaf9_like",
+        "columns": [
+          "name"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "name"
+    ]
+  },
+  "pharmacy.Prescription": {
+    "db_table": "pharmacy_prescription",
+    "verbose_name": "Prescriptions",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "medical_record_id",
+        "field_name": "medical_record",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "medical record",
+        "references": "medical_records.MedicalRecord",
+        "on_delete": "CASCADE",
+        "related_name": "prescriptions",
+        "db_index": true
+      },
+      {
+        "name": "medicine_id",
+        "field_name": "medicine",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "medicine",
+        "references": "pharmacy.Medicine",
+        "on_delete": "PROTECT",
+        "related_name": "prescriptions",
+        "db_index": true
+      },
+      {
+        "name": "dosage",
+        "field_name": "dosage",
+        "field_type": "CharField",
+        "pg_type": "varchar(255)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 255,
+        "validators": [
+          "max length: 255"
+        ],
+        "verbose_name": "dosage"
+      },
+      {
+        "name": "frequency",
+        "field_name": "frequency",
+        "field_type": "CharField",
+        "pg_type": "varchar(255)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 255,
+        "validators": [
+          "max length: 255"
+        ],
+        "verbose_name": "frequency"
+      },
+      {
+        "name": "duration",
+        "field_name": "duration",
+        "field_type": "CharField",
+        "pg_type": "varchar(100)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 100,
+        "validators": [
+          "max length: 100"
+        ],
+        "verbose_name": "duration"
+      },
+      {
+        "name": "quantity_prescribed",
+        "field_name": "quantity_prescribed",
+        "field_type": "PositiveIntegerField",
+        "pg_type": "integer",
+        "go_type": "uint32",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: 1",
+          "max value: 2147483647"
+        ],
+        "verbose_name": "quantity prescribed"
+      },
+      {
+        "name": "status",
+        "field_name": "status",
+        "field_type": "CharField",
+        "pg_type": "varchar(15)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "PENDING",
+        "max_length": 15,
+        "choices": [
+          {
+            "value": "PENDING",
+            "label": "Pending Fulfillment"
+          },
+          {
+            "value": "DISPENSED",
+            "label": "Dispensed"
+          },
+          {
+            "value": "CANCELLED",
+            "label": "Cancelled"
+          }
+        ],
+        "validators": [
+          "max length: 15"
+        ],
+        "verbose_name": "status"
+      },
+      {
+        "name": "prescribed_at",
+        "field_name": "prescribed_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "prescribed at"
+      },
+      {
+        "name": "dispensed_at",
+        "field_name": "dispensed_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "*time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "dispensed at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "medical_record_id",
+        "references": "medical_records.MedicalRecord",
+        "db_table": "medical_records_medicalrecord",
+        "on_delete": "CASCADE",
+        "related_name": "prescriptions"
+      },
+      {
+        "column": "medicine_id",
+        "references": "pharmacy.Medicine",
+        "db_table": "pharmacy_medicine",
+        "on_delete": "PROTECT",
+        "related_name": "prescriptions"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "pharmacy_prescription_quantity_prescribed_check",
+        "type": "CHECK",
+        "columns": [
+          "quantity_prescribed"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "pharmacy_prescription_medical_record_id_eb756767",
+        "columns": [
+          "medical_record_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "pharmacy_prescription_medicine_id_d3918551",
+        "columns": [
+          "medicine_id"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "-prescribed_at"
+    ]
+  },
+  "users.CustomUser": {
+    "db_table": "users_customuser",
+    "verbose_name": "Users",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "password",
+        "field_name": "password",
+        "field_type": "CharField",
+        "pg_type": "varchar(128)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 128,
+        "validators": [
+          "max length: 128"
+        ],
+        "verbose_name": "password"
+      },
+      {
+        "name": "last_login",
+        "field_name": "last_login",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "*time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "last login"
+      },
+      {
+        "name": "email",
+        "field_name": "email",
+        "field_type": "EmailField",
+        "pg_type": "varchar(254)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 254,
+        "validators": [
+          "email format",
+          "max length: 254"
+        ],
+        "verbose_name": "email address"
+      },
+      {
+        "name": "first_name",
+        "field_name": "first_name",
+        "field_type": "CharField",
+        "pg_type": "varchar(150)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "",
+        "max_length": 150,
+        "validators": [
+          "max length: 150"
+        ],
+        "verbose_name": "first name"
+      },
+      {
+        "name": "last_name",
+        "field_name": "last_name",
+        "field_type": "CharField",
+        "pg_type": "varchar(150)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": "",
+        "max_length": 150,
+        "validators": [
+          "max length: 150"
+        ],
+        "verbose_name": "last name"
+      },
+      {
+        "name": "role_id",
+        "field_name": "role",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "role",
+        "references": "users.Role",
+        "on_delete": "PROTECT",
+        "related_name": "users",
+        "db_index": true
+      },
+      {
+        "name": "phone",
+        "field_name": "phone",
+        "field_type": "CharField",
+        "pg_type": "varchar(15)",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 15,
+        "validators": [
+          "max length: 15"
+        ],
+        "verbose_name": "phone"
+      },
+      {
+        "name": "date_of_birth",
+        "field_name": "date_of_birth",
+        "field_type": "DateField",
+        "pg_type": "date",
+        "go_type": "*time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "date of birth"
+      },
+      {
+        "name": "gender",
+        "field_name": "gender",
+        "field_type": "CharField",
+        "pg_type": "varchar(10)",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 10,
+        "choices": [
+          {
+            "value": "Male",
+            "label": "Male"
+          },
+          {
+            "value": "Female",
+            "label": "Female"
+          },
+          {
+            "value": "Other",
+            "label": "Other"
+          }
+        ],
+        "validators": [
+          "max length: 10"
+        ],
+        "verbose_name": "gender"
+      },
+      {
+        "name": "address",
+        "field_name": "address",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "address"
+      },
+      {
+        "name": "profile_picture",
+        "field_name": "profile_picture",
+        "field_type": "ImageField",
+        "pg_type": "varchar(100)",
+        "go_type": "*string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "max_length": 100,
+        "verbose_name": "profile picture",
+        "upload_to": "profile_pics/"
+      },
+      {
+        "name": "is_active",
+        "field_name": "is_active",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": true,
+        "verbose_name": "is active"
+      },
+      {
+        "name": "is_staff",
+        "field_name": "is_staff",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": false,
+        "verbose_name": "is staff"
+      },
+      {
+        "name": "is_verified",
+        "field_name": "is_verified",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": false,
+        "verbose_name": "is verified"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      },
+      {
+        "name": "updated_at",
+        "field_name": "updated_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "updated at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "role_id",
+        "references": "users.Role",
+        "db_table": "users_role",
+        "on_delete": "PROTECT",
+        "related_name": "users"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "users_customuser_email_key",
+        "type": "UNIQUE",
+        "columns": [
+          "email"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "users_customuser_email_6445acef_like",
+        "columns": [
+          "email"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "users_customuser_role_obj_id_8d16752f",
+        "columns": [
+          "role_id"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "-created_at"
+    ]
+  },
+  "users.Permission": {
+    "db_table": "users_permission",
+    "verbose_name": "permissions",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "code",
+        "field_name": "code",
+        "field_type": "CharField",
+        "pg_type": "varchar(100)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 100,
+        "validators": [
+          "max length: 100"
+        ],
+        "verbose_name": "code"
+      },
+      {
+        "name": "name",
+        "field_name": "name",
+        "field_type": "CharField",
+        "pg_type": "varchar(150)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 150,
+        "validators": [
+          "max length: 150"
+        ],
+        "verbose_name": "name"
+      },
+      {
+        "name": "description",
+        "field_name": "description",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "description"
+      },
+      {
+        "name": "is_active",
+        "field_name": "is_active",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": true,
+        "verbose_name": "is active"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "users_permission_code_key",
+        "type": "UNIQUE",
+        "columns": [
+          "code"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "users_permission_code_eb84900c_like",
+        "columns": [
+          "code"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": []
+  },
+  "users.Role": {
+    "db_table": "users_role",
+    "verbose_name": "roles",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "code",
+        "field_name": "code",
+        "field_type": "CharField",
+        "pg_type": "varchar(50)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 50,
+        "validators": [
+          "max length: 50"
+        ],
+        "verbose_name": "code"
+      },
+      {
+        "name": "name",
+        "field_name": "name",
+        "field_type": "CharField",
+        "pg_type": "varchar(100)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 100,
+        "validators": [
+          "max length: 100"
+        ],
+        "verbose_name": "name"
+      },
+      {
+        "name": "description",
+        "field_name": "description",
+        "field_type": "TextField",
+        "pg_type": "text",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "description"
+      },
+      {
+        "name": "is_active",
+        "field_name": "is_active",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": true,
+        "verbose_name": "is active"
+      },
+      {
+        "name": "is_system",
+        "field_name": "is_system",
+        "field_type": "BooleanField",
+        "pg_type": "boolean",
+        "go_type": "bool",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": true,
+        "default": false,
+        "verbose_name": "is system"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [],
+    "m2m_fields": [
+      {
+        "name": "permissions",
+        "field_type": "ManyToManyField",
+        "through": "users.RolePermission",
+        "related_model": "users.Permission",
+        "related_name": "roles",
+        "verbose_name": "permissions"
+      }
+    ],
+    "constraints": [
+      {
+        "name": "users_role_code_key",
+        "type": "UNIQUE",
+        "columns": [
+          "code"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "users_role_code_3079c24b_like",
+        "columns": [
+          "code"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": []
+  },
+  "users.RolePermission": {
+    "db_table": "users_rolepermission",
+    "verbose_name": "role permissions",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "role_id",
+        "field_name": "role",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "role",
+        "references": "users.Role",
+        "on_delete": "CASCADE",
+        "related_name": "permission_assignments",
+        "db_index": true
+      },
+      {
+        "name": "permission_id",
+        "field_name": "permission",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "permission",
+        "references": "users.Permission",
+        "on_delete": "CASCADE",
+        "related_name": "role_assignments",
+        "db_index": true
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "role_id",
+        "references": "users.Role",
+        "db_table": "users_role",
+        "on_delete": "CASCADE",
+        "related_name": "permission_assignments"
+      },
+      {
+        "column": "permission_id",
+        "references": "users.Permission",
+        "db_table": "users_permission",
+        "on_delete": "CASCADE",
+        "related_name": "role_assignments"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "unique_role_permission",
+        "type": "UNIQUE",
+        "columns": [
+          "role_id",
+          "permission_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "users_rolepermission_permission_id_9ec7615d",
+        "columns": [
+          "permission_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "users_rolepermission_role_id_d36df18a",
+        "columns": [
+          "role_id"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": []
+  },
+  "users.StaffInvitation": {
+    "db_table": "users_staffinvitation",
+    "verbose_name": "staff invitations",
+    "columns": [
+      {
+        "name": "id",
+        "field_name": "id",
+        "field_type": "BigAutoField",
+        "pg_type": "bigserial",
+        "go_type": "int64",
+        "primary_key": true,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "validators": [
+          "min value: -9223372036854775808",
+          "max value: 9223372036854775807"
+        ],
+        "verbose_name": "ID"
+      },
+      {
+        "name": "user_id",
+        "field_name": "user",
+        "field_type": "OneToOneField",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "user",
+        "references": "users.CustomUser",
+        "on_delete": "CASCADE",
+        "related_name": "staff_invitation"
+      },
+      {
+        "name": "invited_by_id",
+        "field_name": "invited_by",
+        "field_type": "ForeignKey",
+        "pg_type": "bigint",
+        "go_type": "int64",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "invited by",
+        "references": "users.CustomUser",
+        "on_delete": "PROTECT",
+        "related_name": "sent_invitations",
+        "db_index": true
+      },
+      {
+        "name": "token_hash",
+        "field_name": "token_hash",
+        "field_type": "CharField",
+        "pg_type": "varchar(64)",
+        "go_type": "string",
+        "primary_key": false,
+        "unique": true,
+        "nullable": false,
+        "has_default": false,
+        "max_length": 64,
+        "validators": [
+          "max length: 64"
+        ],
+        "verbose_name": "token hash"
+      },
+      {
+        "name": "expires_at",
+        "field_name": "expires_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "expires at"
+      },
+      {
+        "name": "accepted_at",
+        "field_name": "accepted_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "*time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "accepted at"
+      },
+      {
+        "name": "cancelled_at",
+        "field_name": "cancelled_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "*time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": true,
+        "has_default": false,
+        "verbose_name": "cancelled at"
+      },
+      {
+        "name": "created_at",
+        "field_name": "created_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "created at"
+      },
+      {
+        "name": "updated_at",
+        "field_name": "updated_at",
+        "field_type": "DateTimeField",
+        "pg_type": "timestamptz",
+        "go_type": "time.Time",
+        "primary_key": false,
+        "unique": false,
+        "nullable": false,
+        "has_default": false,
+        "verbose_name": "updated at"
+      }
+    ],
+    "primary_key": [
+      "id"
+    ],
+    "foreign_keys": [
+      {
+        "column": "user_id",
+        "references": "users.CustomUser",
+        "db_table": "users_customuser",
+        "on_delete": "CASCADE",
+        "related_name": "staff_invitation",
+        "type": "OneToOne"
+      },
+      {
+        "column": "invited_by_id",
+        "references": "users.CustomUser",
+        "db_table": "users_customuser",
+        "on_delete": "PROTECT",
+        "related_name": "sent_invitations"
+      }
+    ],
+    "m2m_fields": [],
+    "constraints": [
+      {
+        "name": "users_staffinvitation_token_hash_key",
+        "type": "UNIQUE",
+        "columns": [
+          "token_hash"
+        ]
+      },
+      {
+        "name": "users_staffinvitation_user_id_key",
+        "type": "UNIQUE",
+        "columns": [
+          "user_id"
+        ]
+      }
+    ],
+    "indexes": [
+      {
+        "name": "users_staffinvitation_invited_by_id_59020b10",
+        "columns": [
+          "invited_by_id"
+        ],
+        "type": "idx"
+      },
+      {
+        "name": "users_staffinvitation_token_hash_44fb09d2_like",
+        "columns": [
+          "token_hash"
+        ],
+        "type": "idx"
+      }
+    ],
+    "unique_together": [],
+    "ordering": [
+      "-created_at"
+    ]
+  }
+}
