@@ -27,9 +27,11 @@ class AIChatConsumer(WebsocketConsumer):
             }))
             return
 
+        user = self.scope["user"]
+
         result = ask_assistant(
             question,
-            user=self.scope["user"],
+            user=user,
         )
 
         self.send(text_data=json.dumps({
