@@ -8,6 +8,7 @@ from ai.nodes import (
     execute_sql_node,
     generate_answer_node,
     generate_general_answer_node,
+    generate_user_answer_node,
 )
 
 
@@ -43,6 +44,11 @@ graph_builder.add_node(
     generate_general_answer_node,
 )
 
+graph_builder.add_node(
+    "generate_user_answer",
+    generate_user_answer_node,
+)
+
 
 graph_builder.add_edge(
     START,
@@ -50,16 +56,16 @@ graph_builder.add_edge(
 )
 
 
-
 graph_builder.add_conditional_edges(
     "classify",
     route_intent,
     {
-        "database": "generate_sql",
+        "user": "generate_user_answer",
         "general": "generate_general_answer",
+        "database_read": "generate_sql",
+        "database_write": "generate_sql",
     },
 )
-
 
 
 graph_builder.add_edge(
@@ -77,9 +83,13 @@ graph_builder.add_edge(
     END,
 )
 
-
 graph_builder.add_edge(
     "generate_general_answer",
+    END,
+)
+
+graph_builder.add_edge(
+    "generate_user_answer",
     END,
 )
 
@@ -87,7 +97,14 @@ graph_builder.add_edge(
 graph = graph_builder.compile()
 
 
-def ask_assistant(question: str, user: object):
+def ask_assistant(question: str, user):
+    print("AI USER:", user)
+
+    print(
+        "AI USER ID:",
+        user.id if user.is_authenticated else None,
+    )
+
     result = graph.invoke({
         "question": question,
         "user": user,
