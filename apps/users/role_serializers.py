@@ -1,15 +1,16 @@
 from rest_framework import serializers
 
+from apps.utilities.models import BaseModelSerializer
 from .models import Permission, Role
 
 
-class PermissionSerializer(serializers.ModelSerializer):
+class PermissionSerializer(BaseModelSerializer):
     class Meta:
         model = Permission
         fields = ["code", "name", "description"]
 
 
-class RoleCreateSerializer(serializers.ModelSerializer):
+class RoleCreateSerializer(BaseModelSerializer):
     permissions = serializers.SlugRelatedField(
         many=True,
         slug_field="code",
@@ -41,7 +42,7 @@ class RoleCreateSerializer(serializers.ModelSerializer):
         return role
 
 
-class RoleDetailSerializer(serializers.ModelSerializer):
+class RoleDetailSerializer(BaseModelSerializer):
     permissions = serializers.SlugRelatedField(
         many=True,
         slug_field="code",

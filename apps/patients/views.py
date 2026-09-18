@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 
 from apps.core.permissions import HasCustomPermission
+from apps.utilities.mixin import PaginationMixin
 
 from .models import PatientProfile
 from .serializers import (
@@ -25,6 +26,8 @@ from .serializers import (
                 type=str,
                 description="Search by patient name or email.",
             ),
+            OpenApiParameter(name="page", type=int),
+            OpenApiParameter(name="page_size", type=int),
         ],
         responses={200: PatientListSerializer(many=True)},
     ),
@@ -35,7 +38,7 @@ from .serializers import (
         responses={201: PatientListSerializer},
     ),
 )
-class PatientListCreateView(APIView):
+class PatientListCreateView(PaginationMixin, APIView):
     """Staff patient registry: search patients (GET ?q=) and register a new
     walk-in patient (POST). Powers the receptionist's book-for-a-patient flow."""
 
@@ -66,12 +69,12 @@ class PatientListCreateView(APIView):
 
 
     def get(self, request):
-        serializer = PatientListSerializer(
+        return self.paginate_list(
+            request,
             self.get_queryset(),
-            many=True,
+            PatientListSerializer,
             context={"request": request},
         )
-        return Response(serializer.data)
 
     def post(self, request):
         serializer = PatientCreateSerializer(

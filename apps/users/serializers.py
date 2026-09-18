@@ -5,10 +5,11 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 from apps.patients.models import PatientProfile
+from apps.utilities.models import BaseModelSerializer
 from .models import CustomUser, Role
 
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
+class UserRegistrationSerializer(BaseModelSerializer):
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -50,7 +51,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class UserProfileSerializer(BaseModelSerializer):
     role = serializers.CharField(source="role.code", read_only=True)
     permissions = serializers.SerializerMethodField()
 

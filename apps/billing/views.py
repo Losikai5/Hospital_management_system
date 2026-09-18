@@ -2,7 +2,7 @@ from io import BytesIO
 
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import HasCustomPermission
+from apps.utilities.mixin import PaginationMixin
 
 from .models import Invoice
 from .serializers import (
@@ -48,6 +49,10 @@ class InvoiceAccessMixin:
     get=extend_schema(
         tags=["Billing"],
         summary="List accessible invoices",
+        parameters=[
+            OpenApiParameter(name="page", type=int),
+            OpenApiParameter(name="page_size", type=int),
+        ],
         responses={200: InvoiceSerializer(many=True)},
     ),
     post=extend_schema(
@@ -57,7 +62,7 @@ class InvoiceAccessMixin:
         responses={201: InvoiceSerializer},
     ),
 )
-class InvoiceListCreateView(InvoiceAccessMixin, APIView):
+class InvoiceListCreateView(PaginationMixin, InvoiceAccessMixin, APIView):
     permission_classes = [HasCustomPermission]
     required_permissions_by_method = {
         "GET": ("can_view_invoices",),
@@ -65,12 +70,12 @@ class InvoiceListCreateView(InvoiceAccessMixin, APIView):
     }
 
     def get(self, request):
-        serializer = InvoiceSerializer(
+        return self.paginate_list(
+            request,
             self.get_queryset(),
-            many=True,
+            InvoiceSerializer,
             context={"request": request},
         )
-        return Response(serializer.data)
 
     def post(self, request):
         serializer = InvoiceCreateSerializer(

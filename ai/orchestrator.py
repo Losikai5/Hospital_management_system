@@ -99,6 +99,7 @@ graph = graph_builder.compile()
 
 def ask_assistant(question: str, user):
     print("AI USER:", user)
+    
 
     print(
         "AI USER ID:",

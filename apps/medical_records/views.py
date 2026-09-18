@@ -1,10 +1,11 @@
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import HasCustomPermission
+from apps.utilities.mixin import PaginationMixin
 
 from .models import MedicalRecord
 from .serializers import MedicalRecordCreateSerializer, MedicalRecordListSerializer
@@ -53,15 +54,23 @@ class MedicalRecordVisibilityMixin:
 @extend_schema(
     tags=["Medical Records"],
     summary="List medical records",
+    parameters=[
+        OpenApiParameter(name="page", type=int),
+        OpenApiParameter(name="page_size", type=int),
+    ],
     responses={200: MedicalRecordListSerializer(many=True)},
 )
-class MedicalRecordListView(MedicalRecordVisibilityMixin, APIView):
+class MedicalRecordListView(PaginationMixin, MedicalRecordVisibilityMixin, APIView):
     serializer_class = MedicalRecordListSerializer
     permission_classes = [HasCustomPermission]
     required_permission = "can_view_medical_records"
 
     def get(self, request):
-        return Response(self.serializer_class(self.get_queryset(), many=True).data)
+        return self.paginate_list(
+            request,
+            self.get_queryset(),
+            self.serializer_class,
+        )
 
 
 @extend_schema(

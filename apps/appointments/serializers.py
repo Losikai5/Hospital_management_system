@@ -4,9 +4,10 @@ from .models import Appointment, AppointmentStatus
 from .services import book_appointment
 from apps.doctors.models import DoctorProfile
 from apps.patients.models import PatientProfile
+from apps.utilities.models import BaseModelSerializer
 
 
-class AppointmentCreateSerializer(serializers.ModelSerializer):
+class AppointmentCreateSerializer(BaseModelSerializer):
     """
     Input serializer for booking an appointment.
     A patient booking for themselves omits `patient` — it's taken from the request.
@@ -72,7 +73,7 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         return appointment
 
 
-class AppointmentListSerializer(serializers.ModelSerializer):
+class AppointmentListSerializer(BaseModelSerializer):
     """
     Output serializer for displaying appointments.
     Shows human-readable information instead of just IDs.

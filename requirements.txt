@@ -36,6 +36,7 @@ rpds-py==0.30.0
 six==1.17.0
 sqlparse==0.5.5
 tzdata==2026.2
+uuid6==2025.0.1
 tzlocal==5.3.1
 uritemplate==4.2.0
 vine==5.1.0
