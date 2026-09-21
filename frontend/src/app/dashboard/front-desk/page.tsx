@@ -156,16 +156,16 @@ export default function FrontDeskPage() {
           placeholder="Search by patient name or email…"
           type="search"
           autoFocus
-          className="h-11 w-full rounded-xl border border-stone-200 bg-white pl-10 pr-4 text-sm shadow-sm outline-none transition-colors placeholder:text-stone-400 focus-visible:border-emerald-500 focus-visible:ring-[3px] focus-visible:ring-emerald-500/20 dark:border-stone-700 dark:bg-stone-900 dark:placeholder:text-stone-500"
+          className="h-11 w-full rounded-full border border-hairline bg-canvas pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-stone-400 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 dark:border-stone-700 dark:bg-stone-900 dark:placeholder:text-stone-500"
         />
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-stone-200/70 bg-white p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+        <div className="rounded-[18px] border border-hairline bg-canvas p-5 dark:border-stone-800 dark:bg-stone-900">
           <LoadingRows rows={4} />
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+        <div className="rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
           <ErrorState message={error} onRetry={load} />
         </div>
       ) : q ? (
@@ -198,7 +198,7 @@ export default function FrontDeskPage() {
           )}
 
           {matches.length > 0 && (
-            <section className="rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+            <section className="rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
               <div className="border-b border-stone-100 px-5 py-3 text-[11px] font-medium uppercase tracking-wider text-stone-400 dark:border-stone-800 dark:text-stone-500">
                 All bookings for this patient
               </div>
@@ -215,7 +215,7 @@ export default function FrontDeskPage() {
           )}
         </div>
       ) : (
-        <section className="rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+        <section className="rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
           <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3 dark:border-stone-800">
             <span className="text-sm font-semibold text-stone-900 dark:text-stone-50">
               Today&apos;s schedule

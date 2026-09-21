@@ -18,17 +18,21 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <Link href="/dashboard" className="flex h-16 items-center gap-2.5 border-b border-stone-200/70 px-5 dark:border-stone-800" onClick={onNavigate}>
-        <div className="flex size-8 items-center justify-center rounded-[10px] bg-emerald-600 text-sm font-bold text-white shadow-sm dark:bg-emerald-500">
+      <Link
+        href="/dashboard"
+        className="flex h-16 items-center gap-2.5 border-b border-white/10 px-5"
+        onClick={onNavigate}
+      >
+        <div className="flex size-8 items-center justify-center rounded-[10px] bg-action text-sm font-bold text-white">
           S
         </div>
-        <span className="text-[15px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">
+        <span className="text-[15px] font-semibold tracking-tight text-white">
           Serenity Health
         </span>
       </Link>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-        <div className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wider text-stone-400 dark:text-stone-500">
+        <div className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wider text-white/40">
           Menu
         </div>
         {items.map((item) => {
@@ -39,10 +43,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors",
                 active
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                  : "text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-50"
+                  ? "bg-action text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
               )}
             >
               <item.icon className="size-[18px]" />
@@ -52,25 +56,25 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      <div className="border-t border-stone-200/70 p-3 dark:border-stone-800">
+      <div className="border-t border-white/10 p-3">
         <Link
           href="/dashboard/profile"
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-800"
+          className="flex items-center gap-3 rounded-full px-3 py-2 transition-colors hover:bg-white/10"
         >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-action text-xs font-semibold text-white">
             {user.first_name?.[0] ?? user.email[0]?.toUpperCase() ?? "U"}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-stone-900 dark:text-stone-50">
+            <div className="truncate text-sm font-medium text-white">
               {user.first_name || user.email}
             </div>
-            <div className="truncate text-xs text-stone-500 dark:text-stone-400">{user.role}</div>
+            <div className="truncate text-xs text-white/50">{user.role}</div>
           </div>
         </Link>
         <button
           onClick={logout}
-          className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-stone-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-stone-400 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+          className="mt-1 flex w-full items-center gap-3 rounded-full px-3 py-2 text-sm font-medium text-white/50 transition-colors hover:bg-red-500/15 hover:text-red-300"
         >
           <Logout04Icon className="size-[18px]" />
           Sign out
@@ -93,8 +97,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-stone-50 dark:bg-stone-950">
-        <div className="size-8 animate-spin rounded-full border-2 border-emerald-600/30 border-t-emerald-600" />
+      <div className="flex min-h-[100dvh] items-center justify-center bg-parchment dark:bg-stone-950">
+        <div className="size-8 animate-spin rounded-full border-2 border-action/30 border-t-action" />
       </div>
     );
   }
@@ -102,18 +106,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-[100dvh] bg-stone-50 dark:bg-stone-950">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-stone-200/70 bg-white lg:block dark:border-stone-800 dark:bg-stone-900">
+    <div className="min-h-[100dvh] bg-canvas dark:bg-stone-950">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 bg-ink lg:block dark:bg-ink">
         <SidebarContent />
       </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-72 bg-white shadow-2xl dark:bg-stone-900">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 w-72 bg-ink">
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute right-3 top-4 rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800"
+              className="absolute right-3 top-4 z-10 rounded-full p-1.5 text-white/60 hover:bg-white/10 hover:text-white"
               aria-label="Close menu"
             >
               <Cancel01Icon className="size-5" />
@@ -124,17 +128,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-stone-200/70 bg-white/80 px-4 backdrop-blur-xl sm:px-6 dark:border-stone-800 dark:bg-stone-900/80">
+        <header className="frosted sticky top-0 z-30 flex h-14 items-center justify-between border-b border-hairline/60 px-4 sm:px-6">
           <button
             onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 lg:hidden"
+            className="rounded-full p-2 text-ink-48 hover:bg-stone-100 dark:hover:bg-stone-800 lg:hidden"
             aria-label="Open menu"
           >
             <Menu01Icon className="size-5" />
           </button>
           <div className="flex-1" />
           <div className="flex items-center gap-3">
-            <span className="hidden text-xs font-medium text-stone-400 md:block dark:text-stone-500">
+            <span className="hidden text-xs font-normal text-ink-48 md:block">
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </span>
             {isLoading || !isAuthenticated ? null : null}

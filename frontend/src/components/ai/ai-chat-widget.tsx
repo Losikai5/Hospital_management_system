@@ -146,7 +146,7 @@ export function AiChatWidget() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-5 right-5 z-[60] flex size-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-900/25 transition-transform hover:scale-105 hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/30 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+        className="fixed bottom-5 right-5 z-[60] flex size-14 items-center justify-center rounded-full bg-action text-white transition-transform hover:scale-105 hover:bg-focus focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-action/30"
         aria-label="Open AI assistant"
       >
         <ChatBotIcon className="size-6" />
@@ -158,23 +158,23 @@ export function AiChatWidget() {
 
   return (
     <section
-      className="fixed bottom-4 right-4 z-[60] flex h-[min(38rem,calc(100dvh-2rem))] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl shadow-stone-900/15 dark:border-stone-700 dark:bg-stone-900"
+      className="fixed bottom-4 right-4 z-[60] flex h-[min(38rem,calc(100dvh-2rem))] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900"
       aria-label="AI Assistant"
     >
-      <header className="flex items-center justify-between bg-emerald-700 px-4 py-3 text-white dark:bg-emerald-700">
+      <header className="flex items-center justify-between bg-action px-4 py-3 text-white">
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-[11px] bg-white/15">
             <AiChipIcon className="size-4" />
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-semibold">AI Assistant</h2>
-            <p className="text-xs text-emerald-100">{statusLabel(status)}</p>
+            <p className="text-xs text-white/75">{statusLabel(status)}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={closePanel}
-          className="rounded-lg p-1.5 text-emerald-100 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="rounded-full p-1.5 text-white/75 transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           aria-label="Minimize AI assistant"
         >
           <Cancel01Icon className="size-5" />

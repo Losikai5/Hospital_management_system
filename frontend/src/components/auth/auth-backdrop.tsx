@@ -5,7 +5,7 @@ import { CheckmarkCircle02Icon, Activity01Icon, Medicine02Icon } from "hugeicons
 
 /**
  * Ambient animated backdrop for the auth screens. Deliberately quiet: a layered
- * emerald/teal glow, the "+" motif, slowly drifting orbs and a few faint, gently
+ * blue glow, the "+" motif, slowly drifting orbs and a few faint, gently
  * bobbing chips — atmosphere, not the focus. Fully static under reduced-motion.
  */
 export function AuthBackdrop() {
@@ -28,7 +28,7 @@ export function AuthBackdrop() {
         };
 
   const chip =
-    "rounded-xl bg-white/55 shadow-sm ring-1 ring-stone-900/[0.04] backdrop-blur-md";
+    "rounded-[14px] bg-white/55 ring-1 ring-stone-900/[0.04] backdrop-blur-md";
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -37,7 +37,7 @@ export function AuthBackdrop() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(55rem 55rem at 10% -8%, rgba(16,185,129,0.13), transparent 60%), radial-gradient(48rem 48rem at 106% 110%, rgba(13,148,136,0.11), transparent 55%)",
+            "radial-gradient(55rem 55rem at 10% -8%, rgba(0,102,204,0.12), transparent 60%), radial-gradient(48rem 48rem at 106% 110%, rgba(0,113,227,0.10), transparent 55%)",
         }}
       />
       <div className="absolute inset-0 bg-plus-grid opacity-40" />
@@ -46,21 +46,21 @@ export function AuthBackdrop() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(85rem 58rem at 50% 42%, transparent 56%, rgba(28,25,23,0.05))",
+            "radial-gradient(85rem 58rem at 50% 42%, transparent 56%, rgba(29,29,31,0.05))",
         }}
       />
 
       {/* Drifting orbs — slow and low-contrast */}
       <motion.div
-        className="absolute -left-24 top-0 size-80 rounded-full bg-emerald-400/15 blur-3xl"
+        className="absolute -left-24 top-0 size-80 rounded-full bg-focus/15 blur-3xl"
         {...drift(30, 16, 12)}
       />
       <motion.div
-        className="absolute -right-28 bottom-0 size-[26rem] rounded-full bg-teal-400/[0.12] blur-3xl"
+        className="absolute -right-28 bottom-0 size-[26rem] rounded-full bg-action/[0.12] blur-3xl"
         {...drift(38, 18, 14)}
       />
       <motion.div
-        className="absolute -bottom-24 left-1/3 size-72 rounded-full bg-emerald-300/10 blur-3xl"
+        className="absolute -bottom-24 left-1/3 size-72 rounded-full bg-link-blue/10 blur-3xl"
         {...drift(34, 12, 10)}
       />
 

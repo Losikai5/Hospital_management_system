@@ -128,7 +128,7 @@ export default function BillingPage() {
       {canCreate && (
         <form
           onSubmit={generateInvoice}
-          className="flex flex-col gap-3 rounded-xl border border-stone-200/70 bg-white p-5 shadow-sm sm:flex-row dark:border-stone-800 dark:bg-stone-900"
+          className="flex flex-col gap-3 rounded-[18px] border border-hairline bg-canvas p-5 sm:flex-row dark:border-stone-800 dark:bg-stone-900"
         >
           <select
             value={appointmentId}
@@ -149,7 +149,7 @@ export default function BillingPage() {
         </form>
       )}
 
-      <section className="rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <section className="rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
         {invoices.loading ? (
           <div className="p-5"><LoadingRows rows={5} /></div>
         ) : invoices.error ? (
@@ -216,7 +216,7 @@ export default function BillingPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/50 p-4">
           <form
             onSubmit={recordPayment}
-            className="w-full max-w-md space-y-4 rounded-xl bg-white p-6 shadow-2xl dark:bg-stone-900"
+            className="w-full max-w-md space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900"
           >
             <div>
               <h2 className="font-semibold">Record payment</h2>

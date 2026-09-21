@@ -47,73 +47,133 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ---------------------------------------------------------------------------
+ * Apple Design Language — Serenity Health
+ * Guided by DESIGN-apple.md. Action Blue (#0066cc) is the single interactive
+ * accent; ink (#1d1d1f) is the voice of text; parchment (#f5f5f7) and the
+ * near-black tiles alternate as full-bleed surfaces. No decorative gradients,
+ * no shadows on chrome — elevation is surface change + backdrop blur only.
+ * ------------------------------------------------------------------------- */
+
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.985 0.005 70);
-  --foreground: oklch(0.21 0.01 70);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.01 70);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.01 70);
-  --primary: oklch(0.55 0.13 160);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.975 0.02 155);
-  --secondary-foreground: oklch(0.38 0.12 160);
-  --muted: oklch(0.97 0.005 70);
-  --muted-foreground: oklch(0.50 0.02 70);
-  --accent: oklch(0.97 0.005 70);
-  --accent-foreground: oklch(0.21 0.01 70);
-  --destructive: oklch(0.55 0.25 30);
-  --border: oklch(0.92 0.01 70);
-  --input: oklch(0.87 0.01 70);
-  --ring: oklch(0.65 0.15 160);
-  --chart-1: oklch(0.55 0.13 160);
-  --chart-2: oklch(0.50 0.02 70);
-  --chart-3: oklch(0.44 0.01 70);
-  --chart-4: oklch(0.37 0.01 70);
-  --chart-5: oklch(0.27 0.01 70);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.21 0.01 70);
-  --sidebar-primary: oklch(0.55 0.13 160);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0.005 70);
-  --sidebar-accent-foreground: oklch(0.21 0.01 70);
-  --sidebar-border: oklch(0.92 0.01 70);
-  --sidebar-ring: oklch(0.65 0.15 160);
+  --radius: 0.75rem;
+  /* Surfaces */
+  --background: #ffffff; /* canvas */
+  --foreground: #1d1d1f; /* ink */
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  /* Single interactive accent — Action Blue */
+  --primary: #0066cc;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f7; /* parchment */
+  --secondary-foreground: #1d1d1f;
+  --muted: #f5f5f7;
+  --muted-foreground: #7a7a7a; /* ink-muted-48 */
+  --accent: #f5f5f7;
+  --accent-foreground: #1d1d1f;
+  --destructive: #d70015;
+  /* Hairlines */
+  --border: #e0e0e0; /* hairline */
+  --input: #d2d2d7; /* translucent chip gray */
+  --ring: #0071e3; /* primary-focus */
+  --chart-1: #0066cc;
+  --chart-2: #2997ff;
+  --chart-3: #1d1d1f;
+  --chart-4: #a1a1a6;
+  --chart-5: #6e6e73;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #0066cc;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f5f7;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: #e0e0e0;
+  --sidebar-ring: #0071e3;
 }
 
 .dark {
-  --background: oklch(0.13 0.01 70);
-  --foreground: oklch(0.985 0.005 70);
-  --card: oklch(0.21 0.01 70);
-  --card-foreground: oklch(0.985 0.005 70);
-  --popover: oklch(0.21 0.01 70);
-  --popover-foreground: oklch(0.985 0.005 70);
-  --primary: oklch(0.75 0.14 160);
-  --primary-foreground: oklch(0.13 0.01 70);
-  --secondary: oklch(0.27 0.01 70);
-  --secondary-foreground: oklch(0.985 0.005 70);
-  --muted: oklch(0.27 0.01 70);
-  --muted-foreground: oklch(0.71 0.01 70);
-  --accent: oklch(0.27 0.01 70);
-  --accent-foreground: oklch(0.985 0.005 70);
-  --destructive: oklch(0.7 0.19 30);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.75 0.14 160);
-  --chart-1: oklch(0.75 0.14 160);
-  --chart-2: oklch(0.71 0.01 70);
-  --chart-3: oklch(0.44 0.01 70);
-  --chart-4: oklch(0.37 0.01 70);
-  --chart-5: oklch(0.27 0.01 70);
-  --sidebar: oklch(0.21 0.01 70);
-  --sidebar-foreground: oklch(0.985 0.005 70);
-  --sidebar-primary: oklch(0.75 0.14 160);
-  --sidebar-primary-foreground: oklch(0.13 0.01 70);
-  --sidebar-accent: oklch(0.27 0.01 70);
-  --sidebar-accent-foreground: oklch(0.985 0.005 70);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.75 0.14 160);
+  --background: #151517;
+  --foreground: #f5f5f7;
+  --card: #1d1d1f;
+  --card-foreground: #f5f5f7;
+  --popover: #1d1d1f;
+  --popover-foreground: #f5f5f7;
+  /* Sky Link Blue reads on dark surfaces where Action Blue would disappear */
+  --primary: #2997ff;
+  --primary-foreground: #ffffff;
+  --secondary: #2f2f33;
+  --secondary-foreground: #f5f5f7;
+  --muted: #2f2f33;
+  --muted-foreground: #cccccc; /* body-muted */
+  --accent: #2f2f33;
+  --accent-foreground: #f5f5f7;
+  --destructive: #ff453a;
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: #2997ff;
+  --chart-1: #2997ff;
+  --chart-2: #6ea8e8;
+  --chart-3: #f5f5f7;
+  --chart-4: #7a7a7a;
+  --chart-5: #48484d;
+  --sidebar: #1d1d1f;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-primary: #2997ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2f2f33;
+  --sidebar-accent-foreground: #f5f5f7;
+  --sidebar-border: #2f2f33;
+  --sidebar-ring: #2997ff;
+}
+
+/* Apple semantic tokens — available as utilities (bg-parchment, text-ink, …) */
+@theme {
+  --color-ink: #1d1d1f;
+  --color-ink-80: #333333;
+  --color-ink-48: #7a7a7a;
+  --color-canvas: #ffffff;
+  --color-parchment: #f5f5f7;
+  --color-pearl: #fafafc;
+  --color-hairline: #e0e0e0;
+  --color-divider: #f0f0f0;
+  --color-chip: #d2d2d7;
+  --color-body-muted: #cccccc;
+  --color-tile-1: #272729;
+  --color-tile-2: #2a2a2c;
+  --color-tile-3: #252527;
+  --color-void: #000000;
+  --color-action: #0066cc;
+  --color-focus: #0071e3;
+  --color-link-blue: #2997ff;
+
+  /* The legacy palette is remapped so the whole app follows the one-blu system.
+     emerald accented "click me" signals become Action Blue; the stone neutrals
+     become Apple's ink/parchment ramp. */
+  --color-emerald-50: #eef5fc;
+  --color-emerald-100: #dcebfa;
+  --color-emerald-200: #bfdbf7;
+  --color-emerald-300: #8fc0f0;
+  --color-emerald-400: #3f92e8;
+  --color-emerald-500: #0071e3;
+  --color-emerald-600: #0066cc;
+  --color-emerald-700: #0053a6;
+  --color-emerald-800: #004080;
+  --color-emerald-900: #003366;
+  --color-emerald-950: #00203d;
+
+  --color-stone-50: #f5f5f7;
+  --color-stone-100: #ececee;
+  --color-stone-200: #e0e0e0;
+  --color-stone-300: #d2d2d7;
+  --color-stone-400: #a1a1a6;
+  --color-stone-500: #7a7a7a;
+  --color-stone-600: #6e6e73;
+  --color-stone-700: #48484d;
+  --color-stone-800: #2f2f33;
+  --color-stone-900: #1d1d1f;
+  --color-stone-950: #141416;
 }
 
 @layer base {
@@ -122,19 +182,31 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;
   }
+  /* Headlines run on the display face with the signature negative tracking */
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-heading {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif;
+    letter-spacing: -0.015em;
+  }
 }
 
-/* Signature "+" grid motif (the medical cross, used structurally on brand surfaces) */
+/* Signature "+" grid motif — the medical cross, Action Blue, used structurally */
 .bg-plus-grid {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M18 13v10M13 18h10' stroke='%23064e3b' stroke-opacity='0.06' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M18 13v10M13 18h10' stroke='%230066cc' stroke-opacity='0.07' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 .bg-plus-grid-invert {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M18 13v10M13 18h10' stroke='%23ffffff' stroke-opacity='0.12' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M18 13v10M13 18h10' stroke='%23ffffff' stroke-opacity='0.14' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 /* Card entrance — never leaves the element invisible (defaults to opacity 1;
@@ -154,4 +226,35 @@
   .animate-rise {
     animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * Apple helpers
+ * ------------------------------------------------------------------------- */
+
+/* The system's single drop-shadow — reserved for product imagery resting on a
+   surface. Never applied to cards, buttons, or text. */
+.shadow-product {
+  box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
+}
+
+/* The system-wide press micro-interaction for every button. */
+@layer utilities {
+  .press-active {
+    transition-property: transform;
+    transition-duration: 150ms;
+  }
+  .press-active:active {
+    transform: scale(0.95);
+  }
+}
+
+/* Frosted surface — parchment at 80% with saturate + blur (sub-nav, sticky bar). */
+.frosted {
+  background-color: rgba(245, 245, 247, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+.dark .frosted {
+  background-color: rgba(21, 21, 23, 0.8);
 }
