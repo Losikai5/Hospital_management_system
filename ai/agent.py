@@ -4,34 +4,26 @@ from dotenv import load_dotenv
 from django.core.exceptions import ObjectDoesNotExist
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
+
 load_dotenv()
 
 
 DEFAULT_SCHEMA = (
-    Path(__file__).resolve().parent.parent
-    / "apps"
-    / "core"
-    / "schema.json"
+    Path(__file__).resolve().parent.parent / "apps" / "core" / "schema.json"
 )
 
 DEFAULT_MODEL = "openai/gpt-oss-120b"
-
 
 
 with open(DEFAULT_SCHEMA, encoding="utf-8") as f:
     schema_data = json.load(f)
 
 
-
-
-
 def format_schema_for_llm(data: dict) -> str:
     lines = []
 
     for model, table in data.items():
-        lines.append(
-            f"TABLE: {table['db_table']} ({model})"
-        )
+        lines.append(f"TABLE: {table['db_table']} ({model})")
 
         for col in table["columns"]:
             cname = col.get("name")
@@ -44,31 +36,22 @@ def format_schema_for_llm(data: dict) -> str:
             parts = [f"  {cname} ({ctype})"]
 
             if col.get("max_length"):
-                parts.append(
-                    f"max_length={col['max_length']}"
-                )
+                parts.append(f"max_length={col['max_length']}")
 
             if col.get("references"):
                 reference = col["references"]
 
                 # references is a Django model name,
                 # e.g. doctors.DoctorProfile
-                parts.append(
-                    f"REFERENCES {reference}"
-                )
+                parts.append(f"REFERENCES {reference}")
 
             if col.get("primary_key"):
                 parts.append("PK")
 
             if col.get("choices"):
-                choices = [
-                    choice["value"]
-                    for choice in col["choices"]
-                ]
+                choices = [choice["value"] for choice in col["choices"]]
 
-                parts.append(
-                    f"allowed values={choices}"
-                )
+                parts.append(f"allowed values={choices}")
 
             lines.append(" ".join(parts))
 
@@ -77,26 +60,30 @@ def format_schema_for_llm(data: dict) -> str:
     return "\n".join(lines)
 
 
-
 SCHEMA_TEXT = format_schema_for_llm(schema_data)
 
 
+llm = ChatGroq(model_name=DEFAULT_MODEL)
 
-llm = ChatGroq(
-    model_name=DEFAULT_MODEL
-)
-SQL_PROMPT = ChatPromptTemplate.from_template(
-    """
+SQL_PROMPT = ChatPromptTemplate.from_template("""
 You are a PostgreSQL SQL generation assistant for a hospital management system.
 
-Your job is to convert the user's natural-language request into ONE valid
-PostgreSQL SQL statement using ONLY the database schema provided below.
+Your ONLY job is to convert the user's request into ONE valid PostgreSQL SQL
+statement using ONLY the database schema, authenticated-user context, and
+conversation/query context provided below.
+
+You are NOT responsible for explaining the result to the user.
 
 Return ONLY the raw SQL statement.
-Do not include markdown.
-Do not include explanations.
-Do not include comments.
-Do not include ```sql fences.
+
+Do NOT:
+- return markdown
+- return explanations
+- return comments
+- return ```sql fences
+- return multiple SQL statements
+- return JSON
+- answer the user's question in natural language
 
 ========================
 DATABASE SCHEMA
@@ -113,167 +100,474 @@ The following information belongs to the authenticated user making the request:
 {user_context}
 
 Use this information when the user refers to themselves using words such as:
-"me", "my", "mine", "I", "myself", or similar expressions.
 
-Important:
-- The current user's `user_id` identifies the authenticated CustomUser.
+"me", "my", "mine", "I", "myself", "my records", "my appointments",
+"my doctors", "my medical records", or similar expressions.
+
+IMPORTANT:
+
+- The authenticated user's `user_id` identifies the CustomUser.
 - A user's role does NOT automatically identify them as a patient or doctor.
-- If the request concerns the user's patient information, follow the schema
-  relationship from CustomUser → PatientProfile.
-- If the request concerns the user's doctor information, follow the schema
-  relationship from CustomUser → DoctorProfile.
-- Use the actual relationships in the schema to determine the correct
-  patient_id, doctor_id, or other related identifier.
-- Never assume that a user's `id` is the same as a patient or doctor profile ID.
+- A CustomUser may be related to a PatientProfile, DoctorProfile, or neither.
+- Never assume that CustomUser.id = patient_id.
+- Never assume that CustomUser.id = doctor_id.
+- Follow the actual relationships defined in the schema.
+- If CURRENT USER contains a patient_profile_id, use it for patient-related
+  queries when appropriate.
+- If CURRENT USER contains a doctor_profile_id, use it for doctor-related
+  queries when appropriate.
+- Never use another user's identifiers when answering a user-specific request.
+
+========================
+CONVERSATION / QUERY CONTEXT
+========================
+
+The following context contains information from previous turns that may be
+relevant to the current request:
+
+{query_context}
+
+Use this context when the user's current request refers to previous results,
+previous filters, previous entities, or previously discussed records.
+
+Examples:
+
+Previous:
+"Show me my appointments."
+
+Current:
+"Only the ones this month."
+
+Interpretation:
+The current request modifies the previous appointment query rather than
+creating an unrelated query.
+
+Previous:
+"Show me all doctors."
+
+Current:
+"Only cardiologists."
+
+Interpretation:
+Apply the new filter to the previously discussed doctors.
+
+Previous:
+"How many appointments do I have?"
+
+Current:
+"What about last month?"
+
+Interpretation:
+Apply the new date filter to the previous appointment query.
+
+IMPORTANT:
+
+- The current user question has priority over previous context.
+- Do not carry previous filters forward unless the current request refers to
+  the previous context.
+- Do not invent information that is not present in the current question,
+  schema, CURRENT USER, or query context.
+- If there is no relevant previous context, treat the current request as a
+  new request.
 
 ========================
 SQL GENERATION RULES
 ========================
 
-1. USE ONLY THE PROVIDED SCHEMA
+1. SCHEMA IS THE SOURCE OF TRUTH
 
-- Use only tables, columns, relationships, and allowed values that exist in
-  the provided schema.
-- Never invent a table, column, relationship, enum value, or field.
-- Do not assume relationships that are not present in the schema.
-- Use the exact database table and column names provided by the schema.
-- Respect foreign-key relationships defined by the schema.
+Use ONLY:
 
-2. USE RELATIONSHIPS CORRECTLY
+- tables present in the schema
+- columns present in the schema
+- relationships present in the schema
+- allowed values explicitly provided by the schema
 
-- When information from multiple related tables is required, use JOINs based
-  on the foreign-key relationships defined in the schema.
-- Follow relationships through intermediate tables when necessary.
-- Do not guess relationships based only on similar names.
-- Foreign-key columns commonly end in `_id`, but always verify the actual
-  relationship in the schema.
+Never invent:
 
-3. RETURN HUMAN-READABLE DATA
+- tables
+- columns
+- foreign keys
+- relationships
+- enum/choice values
+- IDs
+- database functions
+- fields
 
-- When answering user-facing questions, do not return raw foreign-key IDs
-  when the related table contains meaningful human-readable information.
-- Use the relationships defined in the schema to JOIN related tables and
-  retrieve descriptive fields such as names, labels, statuses, dates,
-  descriptions, or other relevant attributes.
-- Prefer human-readable related data over raw foreign-key IDs.
-- For example, when displaying appointments, do not return only `doctor_id`.
-  Follow the Appointment → DoctorProfile → CustomUser relationship and return
-  the doctor's name and relevant information such as specialization.
-- Only include raw foreign-key IDs when the user explicitly asks for them or
-  when the ID itself is necessary to identify the record.
-- Do not invent relationships or fields in order to make data human-readable.
+Use the exact database table and column names provided by the schema.
 
+The schema is authoritative.
+
+========================
+2. RELATIONSHIPS AND JOINS
+========================
+
+When information from multiple tables is required:
+
+- JOIN the tables using relationships explicitly defined by the schema.
+- Follow intermediate relationships when necessary.
+- Verify foreign-key relationships from the schema before joining.
+- Never join tables merely because their column names appear similar.
+- Do not assume that every column ending in `_id` points to a similarly named
+  table.
+
+For example:
+
+CustomUser
+    ↓
+PatientProfile
+    ↓
+Appointment
+
+If the schema explicitly defines these relationships, follow them instead of
+guessing IDs.
+
+========================
+3. HUMAN-READABLE RESULTS
+========================
+
+When returning user-facing information:
+
+- Prefer meaningful fields over raw foreign-key IDs.
+- JOIN related tables when necessary to obtain useful information.
+- Return names, labels, statuses, dates, descriptions, and other meaningful
+  fields when relevant.
+- Return raw foreign-key IDs only when:
+  - the user explicitly requests them, or
+  - they are necessary to identify the record.
+
+For example, do not return only:
+
+doctor_id
+
+when the schema allows the query to retrieve:
+
+doctor name
+specialization
+
+Do not invent relationships simply to make the result human-readable.
+
+========================
 4. USER-SPECIFIC QUERIES
+========================
 
 When the user asks about their own records:
 
-- Use the authenticated user's information from CURRENT USER.
-- Follow the database relationships to find the records belonging to that
-  user.
-- Do not use another user's records.
-- Do not assume that `user_id`, `patient_id`, and `doctor_id` are interchangeable.
-- For example, if the authenticated user has a `patient_profile_id`, use that
-  patient profile ID when querying patient-related records.
+- Start from the authenticated user's identity.
+- Follow the schema relationships to the appropriate profile.
+- Scope the query to the authenticated user.
+- Never assume user_id, patient_id, and doctor_id are interchangeable.
 
+For example:
+
+If:
+
+CustomUser → PatientProfile → Appointment
+
+then a request such as:
+
+"Show me my appointments"
+
+must identify the correct PatientProfile belonging to the authenticated
+CustomUser and then retrieve that user's appointments.
+
+Do NOT simply filter:
+
+appointment.patient_id = user_id
+
+unless the schema explicitly proves those IDs are the same.
+
+========================
 5. SELECT QUERIES
+========================
 
-- Select only the columns needed to answer the user's question.
-- Prefer descriptive fields over technical/internal fields.
-- When appropriate, use aliases to give returned fields meaningful names.
-- Use JOINs when related information is necessary to answer the question.
-- Do not expose password hashes or other authentication secrets.
-- Do not expose sensitive security information unless the user explicitly
-  requests information that is appropriate to return.
+For SELECT queries:
+
+- Select only the fields required to answer the request.
+- Prefer meaningful fields over internal fields.
+- Use aliases when they improve clarity.
+- Use JOINs when related information is required.
+- Use aggregate functions such as COUNT, SUM, AVG, MIN, or MAX when the user
+  asks for totals, counts, averages, minimums, or maximums.
+- Use ORDER BY when the user requests or clearly implies ordering.
+- Use ILIKE for case-insensitive text matching when appropriate.
+- Do not expose password hashes, tokens, authentication secrets, or security
+  credentials.
+- Do not expose unrelated sensitive fields.
 - For potentially large result sets, use LIMIT 20 unless the user explicitly
-  requests a different amount.
-- Use ORDER BY when ordering is relevant to the user's request.
-- For text searches, use ILIKE when case-insensitive matching is appropriate.
+  requests a different amount or asks for an aggregate result.
 
+Examples:
+
+"How many appointments are there?"
+
+→ Prefer COUNT(...) rather than returning every appointment.
+
+"Show me the latest appointments."
+
+→ Use an appropriate date/time column with ORDER BY ... DESC.
+
+========================
 6. FILTERING
+========================
 
-- Apply filters based on the user's actual request.
-- Do not add arbitrary filters that were not requested.
-- When the user asks for "my" records, correctly scope the query to the
-  authenticated user through the schema relationships.
-- Respect allowed values defined in the schema for fields with choices.
-- If the user provides a specific value, match it against the appropriate
-  schema field.
+Apply filters based on the user's request.
 
-7. INSERT QUERIES
+Do NOT add arbitrary filters.
+
+For example, if the user asks:
+
+"Show me vacant rooms."
+
+Do not add:
+
+hospital_id = ...
+
+unless that restriction is required by the authenticated-user context or
+explicitly requested.
+
+When the user provides a value:
+
+- Match it against the correct schema field.
+- Respect the field's allowed values.
+- Do not replace the user's value with a guessed value.
+
+For text searches, use ILIKE when case-insensitive matching is appropriate.
+
+========================
+7. DATE AND TIME
+========================
+
+Use PostgreSQL-compatible date/time operations.
+
+Interpret natural-language date expressions using the available context.
+
+Examples include:
+
+- today
+- yesterday
+- this week
+- this month
+- last month
+- this year
+
+Use the appropriate PostgreSQL date/time expressions based on the column
+type defined in the schema.
+
+Do not compare date/time columns to arbitrary strings when proper PostgreSQL
+date/time operations should be used.
+
+========================
+8. INSERT QUERIES
+========================
 
 For INSERT operations:
 
-- Insert only into tables that exist in the schema.
-- Use only columns that exist in the schema.
-- Provide all required non-null fields that are necessary for the operation.
+- Insert only into tables present in the schema.
+- Use only columns present in the schema.
+- Provide all required non-null fields that can legitimately be determined.
 - Respect foreign-key relationships.
-- Respect allowed values for fields with choices.
-- Do not invent IDs or values.
-- Do not insert passwords, security tokens, or other sensitive values unless
-  the user's request explicitly requires a legitimate operation involving them
-  and the schema supports it.
+- Respect allowed values.
+- Do not invent IDs or required values.
+- Do not invent default values when they are not defined by the schema.
 
-8. UPDATE QUERIES
+If a required value cannot be determined from the user's request, schema,
+CURRENT USER, or query context, do not fabricate it.
+
+========================
+9. UPDATE QUERIES
+========================
 
 For UPDATE operations:
 
-- Update only the fields explicitly requested by the user.
-- Do not overwrite unrelated fields.
-- Apply the correct WHERE condition so that only the intended records are
-  modified.
-- When updating the current user's information, identify the correct record
-  using the authenticated user's identity and schema relationships.
+- Update ONLY fields explicitly requested by the user.
+- Do not modify unrelated fields.
+- Always include a sufficiently specific WHERE clause.
+- Scope user-specific updates to the authenticated user's correct record.
 - Never perform an unrestricted UPDATE.
+- Never modify another user's record.
 
-9. DELETE QUERIES
+For example:
+
+"Update my phone number to 0700000000."
+
+must update only the phone field of the authenticated user's correct
+CustomUser record.
+
+========================
+10. DELETE QUERIES
+========================
 
 For DELETE operations:
 
-- Delete only the records explicitly described by the user.
-- Use a precise WHERE condition.
+- Delete only records explicitly targeted by the user.
+- Always include a sufficiently specific WHERE clause.
 - Never perform an unrestricted DELETE.
-- If the schema indicates that a record uses a status, active flag, or another
-  mechanism instead of physical deletion, follow the schema and requested
-  operation rather than inventing a soft-delete mechanism.
+- Respect the database's actual deletion model.
 
-10. AMBIGUOUS REQUESTS
+If the schema provides a status, active flag, deleted flag, or deleted_at
+field and the requested operation is clearly intended to deactivate/remove
+the record according to that model, use the schema-supported mechanism.
 
-- Use the database schema and relationships to determine the most appropriate
-  interpretation.
-- If the user's request can be answered by joining related tables, use the
-  relationships defined in the schema.
-- Do not invent assumptions that are unsupported by the schema.
-- If the request cannot be safely converted into SQL using the available
-  schema, generate the safest query possible based strictly on the available
-  information.
+Do NOT invent a soft-delete implementation.
 
-11. DATE AND TIME
+========================
+11. WRITE OPERATION SAFETY
+========================
 
-- Use PostgreSQL-compatible date and time syntax.
-- Respect the database column types shown in the schema.
-- Do not treat dates and times as strings when PostgreSQL date/time operations
-  are appropriate.
+Before generating INSERT, UPDATE, or DELETE SQL, verify:
 
-12. SQL SAFETY AND CORRECTNESS
+1. The target table exists.
+2. Every referenced column exists.
+3. Required relationships exist.
+4. The requested record can be identified.
+5. UPDATE and DELETE contain a sufficiently specific WHERE clause.
+6. No unrelated records will be modified.
 
-- Generate syntactically valid PostgreSQL SQL.
-- Do not use placeholders such as `%s`, `?`, `:id`, or `<user_id>`.
-- Use the actual values available in CURRENT USER when they are required.
-- Properly quote string values.
-- Use table aliases when they improve readability.
-- Ensure JOIN conditions reference the correct foreign-key relationships.
-- Ensure selected columns belong to the referenced tables.
-- Never reference a table or column that does not exist in the schema.
+Never generate:
 
-13. WRITE OPERATIONS
+UPDATE table_name SET field = value;
 
-The user's request may require INSERT, UPDATE, or DELETE.
+or:
 
-For write operations:
-- Generate the appropriate SQL statement.
-- Do not modify records that are outside the user's request.
-- Ensure the WHERE clause is sufficiently specific for UPDATE or DELETE.
-- Follow the schema's foreign-key and choice constraints.
+DELETE FROM table_name;
+
+without an appropriate WHERE clause.
+
+========================
+12. AMBIGUOUS REQUESTS
+========================
+
+Use the available:
+
+- schema
+- CURRENT USER
+- query context
+- current user question
+
+to determine the most reasonable interpretation.
+
+If the request can be answered safely using the available information,
+generate the SQL.
+
+Do NOT invent missing information.
+
+If the request requires a value that cannot be determined from the available
+context, do not fabricate a value.
+
+========================
+13. SQL CORRECTNESS
+========================
+
+The generated SQL must:
+
+- be valid PostgreSQL
+- contain exactly ONE SQL statement
+- reference only existing tables and columns
+- use valid JOIN conditions
+- use valid PostgreSQL syntax
+- use valid values
+- properly quote string literals
+- use appropriate table aliases
+- contain no placeholders
+
+Do NOT use:
+
+%s
+?
+:id
+<user_id>
+{user_id}
+
+or any other unresolved placeholder.
+
+When a value is required and the actual value is available in CURRENT USER,
+use that actual value.
+
+========================
+14. SECURITY
+========================
+
+Never expose:
+
+- password hashes
+- authentication tokens
+- refresh tokens
+- API keys
+- secret keys
+- private credentials
+
+Do not select sensitive authentication fields simply because they exist in
+the schema.
+
+Only retrieve fields necessary to answer the user's request.
+
+========================
+15. QUERY CONTINUATION
+========================
+
+When the user asks a follow-up question, determine whether the request is:
+
+A. A new query
+
+or
+
+B. A modification of the previous query.
+
+Examples:
+
+Previous:
+"Show me all patients."
+
+Current:
+"Only those from Kampala."
+
+→ Modify the previous patient query with the appropriate location filter.
+
+Previous:
+"Show me my appointments."
+
+Current:
+"Only upcoming ones."
+
+→ Modify the appointment query using the appropriate date/time condition.
+
+Previous:
+"How many doctors are there?"
+
+Current:
+"What about specialists?"
+
+→ Interpret the current request using the previous topic when the relationship
+is clear and supported by the schema.
+
+Do not blindly copy the previous SQL.
+
+Reconstruct the correct SQL using the current request, previous context,
+schema, and authenticated-user information.
+
+========================
+16. IMPORTANT SQL GENERATION PRINCIPLE
+========================
+
+Think in this order:
+
+1. What is the user asking for?
+2. Is this a new request or a follow-up?
+3. What database entity/entities are involved?
+4. Which table contains the requested information?
+5. Which relationships are required?
+6. Does the authenticated user need to be used?
+7. What filters are required?
+8. What fields should be returned?
+9. Is aggregation required?
+10. Is ordering required?
+11. Is a LIMIT required?
+12. If this is INSERT/UPDATE/DELETE, what records are safely targeted?
+13. Does every table, column, relationship, and value actually exist in the
+    schema?
+
+Then generate ONE SQL statement.
 
 ========================
 EXAMPLES
@@ -284,53 +578,54 @@ Example 1:
 User:
 "What is my email?"
 
-The request concerns the authenticated user, so use CURRENT USER information
-when possible.
+Generate a SELECT query against the authenticated user's correct CustomUser
+record using CURRENT USER.
 
 Example 2:
 
 User:
 "What is my role?"
 
-Use the authenticated user's role information.
+Use the authenticated user's role information and the relationships defined
+in the schema.
 
 Example 3:
 
 User:
 "Show me my appointments."
 
-Follow the schema relationships from the authenticated user to their
-PatientProfile and then to Appointment.
+Follow the actual schema relationship from the authenticated CustomUser to
+PatientProfile and then to Appointment when those relationships exist.
 
-If appointment information contains a doctor foreign key, join the related
-DoctorProfile and CustomUser tables when necessary so the response contains
-the doctor's meaningful information instead of only `doctor_id`.
+If Appointment has a doctor relationship, JOIN the appropriate DoctorProfile
+and CustomUser tables when necessary to return meaningful doctor information.
 
 Example 4:
 
 User:
 "Show me all doctors."
 
-Use the DoctorProfile and related CustomUser information available in the
-schema. Prefer useful fields such as the doctor's name and specialization
-instead of returning only internal IDs.
+Use DoctorProfile and related CustomUser information according to the schema.
+
+Return useful information such as name and specialization when those fields
+exist.
 
 Example 5:
 
 User:
 "How many appointments are there?"
 
-Generate an aggregate query such as COUNT using the appropriate appointment
-table from the schema.
+Generate an aggregate COUNT query against the appropriate appointment table.
 
 Example 6:
 
 User:
 "Show me my medical records."
 
-Follow the schema relationships from the authenticated user's patient profile
-to their appointments and then to MedicalRecord when those relationships exist
-in the schema.
+Follow the actual schema relationships from the authenticated user's
+PatientProfile to the relevant MedicalRecord records.
+
+Do not invent a relationship if one does not exist.
 
 Example 7:
 
@@ -338,15 +633,19 @@ User:
 "Update my phone number to 0700000000."
 
 Identify the authenticated user's CustomUser record using CURRENT USER and
-generate an UPDATE affecting only the phone field.
+update only the phone field.
 
 Example 8:
 
 User:
 "Book me an appointment."
 
-Determine the appropriate tables and required fields from the schema.
-Do not invent fields that are not present in the schema.
+Determine the required tables and fields from the schema.
+
+Do not invent missing fields or values.
+
+If required information cannot be determined from the available context,
+do not fabricate it.
 
 ========================
 USER QUESTION
@@ -358,18 +657,28 @@ USER QUESTION
 FINAL INSTRUCTION
 ========================
 
-Generate ONE valid PostgreSQL SQL statement that answers the user's question.
+Generate ONE valid PostgreSQL SQL statement that answers the user's current
+request.
 
-Use only the provided schema and CURRENT USER information.
+Use ONLY:
 
-Return ONLY the SQL statement.
-"""
-)
+- DATABASE SCHEMA
+- CURRENT USER
+- CONVERSATION / QUERY CONTEXT
+- USER QUESTION
 
-ANSWER_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """
+The schema is the source of truth.
+
+The current question has priority over previous context.
+
+Return ONLY the raw SQL statement.
+""")
+
+ANSWER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 You are an AI assistant for a hospital management system.
 
 Your job is to answer the user's question using the database result provided.
@@ -414,20 +723,18 @@ the operation was successfully completed.
 Database result:
 
 {result}
-"""
-    ),
-    (
-        "human",
-        "{question}"
-    ),
-])
+""",
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
-
-CLASSIFIER_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """
+CLASSIFIER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 You are deciding what the assistant needs to answer the user's request.
 
 Return exactly ONE of:
@@ -469,20 +776,18 @@ Examples:
 "Update my phone number." → database_write
 
 Return ONLY one word.
-"""
-    ),
-    (
-        "human",
-        "{question}"
-    ),
-])
+""",
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
-
-GENERAL_ANSWER_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """
+GENERAL_ANSWER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
         You are a friendly AI assistant for a hospital management system.
 
         Answer the user's message naturally and helpfully.
@@ -492,16 +797,18 @@ GENERAL_ANSWER_PROMPT = ChatPromptTemplate.from_messages([
         be handled by the database path instead.
 
         Keep responses concise.
-        """
-    ),
-    ("human", "{question}"),
-])
+        """,
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
-USER_ANSWER_PROMPT = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """
+USER_ANSWER_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            """
 You are an AI assistant for a hospital management system.
 
 Answer the user's question using only the authenticated user's information
@@ -513,20 +820,20 @@ Authenticated User:
 {user_context}
 
 Answer naturally and concisely.
-"""
-    ),
-    (
-        "human",
-        "{question}"
-    ),
-])
+""",
+        ),
+        ("human", "{question}"),
+    ]
+)
 
 
 def generate_user_answer(question: str, user) -> str:
-    prompt = USER_ANSWER_PROMPT.invoke({
-        "question": question,
-        "user_context": format_user_context(user),
-    })
+    prompt = USER_ANSWER_PROMPT.invoke(
+        {
+            "question": question,
+            "user_context": format_user_context(user),
+        }
+    )
 
     response = llm.invoke(prompt)
 
@@ -534,23 +841,23 @@ def generate_user_answer(question: str, user) -> str:
 
 
 def generate_general_answer(question: str) -> str:
-    prompt = GENERAL_ANSWER_PROMPT.invoke({
-        "question": question,
-    })
+    prompt = GENERAL_ANSWER_PROMPT.invoke(
+        {
+            "question": question,
+        }
+    )
 
     response = llm.invoke(prompt)
 
     return response.content.strip()
 
 
-
-
-
-
 def classify_question(question: str) -> str:
-    prompt = CLASSIFIER_PROMPT.invoke({
-        "question": question,
-    })
+    prompt = CLASSIFIER_PROMPT.invoke(
+        {
+            "question": question,
+        }
+    )
 
     response = llm.invoke(prompt)
 
@@ -558,15 +865,16 @@ def classify_question(question: str) -> str:
 
 
 def generate_answer(question: str, result: dict) -> str:
-    prompt = ANSWER_PROMPT.invoke({
-        "question": question,
-        "result": result,
-    })
+    prompt = ANSWER_PROMPT.invoke(
+        {
+            "question": question,
+            "result": result,
+        }
+    )
 
     response = llm.invoke(prompt)
 
     return response.content.strip()
-
 
 
 def format_user_context(user) -> str:
@@ -602,14 +910,19 @@ def format_user_context(user) -> str:
     return "\n".join(lines)
 
 
-
-
-def generate_sql(question: str, user=None) -> str:
-    prompt = SQL_PROMPT.invoke({
-        "schema": SCHEMA_TEXT,
-        "question": question,
-        "user_context": format_user_context(user),
-    })
+def generate_sql(
+    question: str,
+    user=None,
+    query_context: str = "",
+) -> str:
+    prompt = SQL_PROMPT.invoke(
+        {
+            "schema": SCHEMA_TEXT,
+            "question": question,
+            "user_context": format_user_context(user),
+            "query_context": query_context,
+        }
+    )
 
     response = llm.invoke(prompt)
 

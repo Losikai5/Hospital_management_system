@@ -115,16 +115,17 @@ graph = graph_builder.compile()
 
 def ask_assistant(question: str, user):
     print("AI USER:", user)
-    
 
     print(
         "AI USER ID:",
         user.id if user.is_authenticated else None,
     )
 
-    result = graph.invoke({
-        "question": question,
-        "user": user,
-    })
+    result = graph.invoke(
+        {
+            "question": question,
+            "user": user,
+        }
+    )
 
     return result

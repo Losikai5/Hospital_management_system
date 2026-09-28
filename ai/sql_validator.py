@@ -1,6 +1,5 @@
 import sqlglot
 
-
 ALLOWED_OPERATIONS = {
     "select",
     "insert",

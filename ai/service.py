@@ -6,10 +6,7 @@ def execute_sql(sql: str):
         cursor.execute(sql)
 
         if cursor.description:
-            columns = [
-                column[0]
-                for column in cursor.description
-            ]
+            columns = [column[0] for column in cursor.description]
 
             rows = cursor.fetchall()
 
@@ -24,4 +21,3 @@ def execute_sql(sql: str):
             "rows": [],
             "rowcount": cursor.rowcount,
         }
-
