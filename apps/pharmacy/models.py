@@ -4,6 +4,8 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
+from apps.utilities.models import SoftDeletableTimestampModel
+
 
 class UnitType(models.TextChoices):
     # Edit 1: Changed unit_type from plain CharField to TextChoices
@@ -20,7 +22,7 @@ class UnitType(models.TextChoices):
     BOTTLE  = 'bottle',  _('Bottle(s)')
 
 
-class Medicine(models.Model):
+class Medicine(SoftDeletableTimestampModel):
     name = models.CharField(
         max_length=255,
         unique=True,          # Edit 2: Added unique=True
@@ -69,15 +71,6 @@ class Medicine(models.Model):
                               # usage instructions, side effects, and
                               # contraindications for each medicine.
     )
-    is_active = models.BooleanField(
-        default=True          # Edit 9: Added is_active field
-                              # Reason: When a medicine is discontinued
-                              # you should never delete it — old
-                              # prescriptions still reference it.
-                              # Deactivating is safer than deleting.
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name        = _('Medicine')

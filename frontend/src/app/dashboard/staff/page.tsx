@@ -276,7 +276,7 @@ export default function StaffPage() {
             className={cn(
               "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
               activeTab === t.key
-                ? "bg-emerald-600 text-white shadow-sm"
+                ? "bg-action text-white"
                 : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50 dark:bg-stone-900 dark:text-stone-400 dark:ring-stone-700 dark:hover:bg-stone-800"
             )}
           >
@@ -289,7 +289,7 @@ export default function StaffPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <form
             onSubmit={inviteForm.handleSubmit(onInviteSubmit)}
-            className="space-y-4 rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900"
+            className="space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900"
           >
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
               <MailSend01Icon className="size-4 text-emerald-600 dark:text-emerald-400" /> New invitation
@@ -352,7 +352,7 @@ export default function StaffPage() {
             </p>
           </form>
 
-          <div className="rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900 h-full">
+          <div className="rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900 h-full">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
               <UserGroupIcon className="size-4 text-emerald-600 dark:text-emerald-400" /> Recent invitations
             </h3>
@@ -384,7 +384,7 @@ export default function StaffPage() {
           {/* Create / Edit Custom Role form */}
           <form
             onSubmit={roleForm.handleSubmit(onRoleFormSubmit)}
-            className="space-y-4 rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900"
+            className="space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900"
           >
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
               {editingRole ? (
@@ -502,7 +502,7 @@ export default function StaffPage() {
           </form>
 
           {/* Existing Roles list */}
-          <div className="rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900 flex flex-col h-[700px]">
+          <div className="rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900 flex flex-col h-[700px]">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50 mb-4">
               <UserGroupIcon className="size-4 text-emerald-600 dark:text-emerald-400" /> Existing Roles
             </h3>
@@ -510,7 +510,7 @@ export default function StaffPage() {
               {roles.map((role) => (
                 <div
                   key={role.code}
-                  className="rounded-lg border border-stone-200 p-4 space-y-3 bg-stone-50/30 dark:border-stone-800 dark:bg-stone-950/30 transition-all hover:shadow-sm"
+                  className="rounded-[18px] border border-hairline p-4 space-y-3 bg-parchment/60 dark:border-stone-800 dark:bg-stone-950/30 transition-colors hover:border-action/30"
                 >
                   <div className="flex items-start justify-between">
                     <div>

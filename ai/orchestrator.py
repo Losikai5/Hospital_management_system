@@ -8,6 +8,9 @@ from ai.nodes import (
     execute_sql_node,
     generate_answer_node,
     generate_general_answer_node,
+    generate_user_answer_node,
+    route_after_sql,
+    sql_validation_error_node,
 )
 
 
@@ -21,6 +24,11 @@ graph_builder = StateGraph(AgentState)
 graph_builder.add_node(
     "classify",
     classify_question_node,
+)
+
+graph_builder.add_node(
+    "sql_validation_error",
+    sql_validation_error_node,
 )
 
 graph_builder.add_node(
@@ -43,6 +51,11 @@ graph_builder.add_node(
     generate_general_answer_node,
 )
 
+graph_builder.add_node(
+    "generate_user_answer",
+    generate_user_answer_node,
+)
+
 
 graph_builder.add_edge(
     START,
@@ -50,16 +63,16 @@ graph_builder.add_edge(
 )
 
 
-
 graph_builder.add_conditional_edges(
     "classify",
     route_intent,
     {
-        "database": "generate_sql",
+        "user": "generate_user_answer",
         "general": "generate_general_answer",
+        "database_read": "generate_sql",
+        "database_write": "generate_sql",
     },
 )
-
 
 
 graph_builder.add_edge(
@@ -67,9 +80,18 @@ graph_builder.add_edge(
     "execute_sql",
 )
 
-graph_builder.add_edge(
+graph_builder.add_conditional_edges(
     "execute_sql",
-    "generate_answer",
+    route_after_sql,
+    {
+        "valid": "generate_answer",
+        "invalid": "sql_validation_error",
+    },
+)
+
+graph_builder.add_edge(
+    "sql_validation_error",
+    END,
 )
 
 graph_builder.add_edge(
@@ -77,9 +99,13 @@ graph_builder.add_edge(
     END,
 )
 
-
 graph_builder.add_edge(
     "generate_general_answer",
+    END,
+)
+
+graph_builder.add_edge(
+    "generate_user_answer",
     END,
 )
 
@@ -87,10 +113,19 @@ graph_builder.add_edge(
 graph = graph_builder.compile()
 
 
-def ask_assistant(question: str, user: object):
-    result = graph.invoke({
-        "question": question,
-        "user": user,
-    })
+def ask_assistant(question: str, user):
+    print("AI USER:", user)
+
+    print(
+        "AI USER ID:",
+        user.id if user.is_authenticated else None,
+    )
+
+    result = graph.invoke(
+        {
+            "question": question,
+            "user": user,
+        }
+    )
 
     return result

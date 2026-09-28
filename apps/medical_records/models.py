@@ -1,8 +1,10 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.utilities.models import TimeStampModel
 
-class MedicalRecord(models.Model):
+
+class MedicalRecord(TimeStampModel):
     # OneToOneField because one appointment produces exactly one record
     # PROTECT prevents deleting an appointment that has a medical record
     appointment = models.OneToOneField(
@@ -21,8 +23,6 @@ class MedicalRecord(models.Model):
         blank=True,
         null=True
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('Medical Record')

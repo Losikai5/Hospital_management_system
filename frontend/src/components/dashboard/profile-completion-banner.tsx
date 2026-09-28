@@ -26,7 +26,7 @@ export function ProfileCompletionBanner() {
       : `${missing.slice(0, -1).join(", ")} and ${missing[missing.length - 1]}`;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-emerald-900/50 dark:bg-emerald-950/30">
+    <div className="flex flex-col gap-3 rounded-[18px] border border-hairline bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-emerald-900/50 dark:bg-emerald-950/30">
       <div className="flex items-start gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
           <UserEdit01Icon className="size-5" />
@@ -49,7 +49,7 @@ function Button({ href }: { href: string }) {
   return (
     <Link
       href={href}
-      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
+      className="press-active inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-focus"
     >
       Complete profile
       <ArrowRight01Icon className="size-4" />

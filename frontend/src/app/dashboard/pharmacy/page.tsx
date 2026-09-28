@@ -73,7 +73,7 @@ export default function PharmacyPage() {
             className={cn(
               "rounded-full px-4 py-1.5 text-sm font-medium capitalize transition-colors",
               tab === t
-                ? "bg-emerald-600 text-white shadow-sm"
+                ? "bg-action text-white"
                 : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50 dark:bg-stone-900 dark:text-stone-400 dark:ring-stone-700 dark:hover:bg-stone-800"
             )}
           >
@@ -82,7 +82,7 @@ export default function PharmacyPage() {
         ))}
       </div>
 
-      <section className="rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <section className="rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
         {error ? (
           <ErrorState message={error} onRetry={loadAll} />
         ) : !medicines || !prescriptions ? (

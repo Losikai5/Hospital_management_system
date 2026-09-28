@@ -106,7 +106,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="rounded-xl border border-stone-200/70 bg-white shadow-sm lg:col-span-2 dark:border-stone-800 dark:bg-stone-900">
+        <section className="rounded-[18px] border border-hairline bg-canvas lg:col-span-2 dark:border-stone-800 dark:bg-stone-900">
           <header className="flex items-center justify-between border-b border-stone-100 px-5 py-4 dark:border-stone-800">
             <div>
               <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-50">Upcoming appointments</h2>
@@ -155,7 +155,7 @@ export default function DashboardPage() {
 
         <div className="space-y-6">
           {isPharmacist || isAdmin ? (
-            <section className="rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+            <section className="rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
               <header className="flex items-center justify-between border-b border-stone-100 px-5 py-4 dark:border-stone-800">
                 <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-50">Inventory alerts</h2>
                 <Link href="/dashboard/pharmacy" className="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400">
@@ -187,20 +187,20 @@ export default function DashboardPage() {
             </section>
           ) : null}
 
-          <section className="rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+          <section className="rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
             <header className="border-b border-stone-100 px-5 py-4 dark:border-stone-800">
               <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-50">Quick actions</h2>
             </header>
             <div className="grid gap-2 p-5">
-              <Link href="/dashboard/appointments/book" className="flex items-center justify-between rounded-lg border border-stone-200 px-3.5 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-stone-700 dark:text-stone-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/20">
+              <Link href="/dashboard/appointments/book" className="press-active flex items-center justify-between rounded-full border border-hairline px-4 py-2.5 text-sm font-medium text-ink-80 transition-colors hover:border-action/40 hover:bg-emerald-50 hover:text-action dark:border-stone-700 dark:text-stone-300 dark:hover:bg-emerald-900/20">
                 Book an appointment
                 <ArrowRight01Icon className="size-4" />
               </Link>
-              <Link href="/dashboard/doctors" className="flex items-center justify-between rounded-lg border border-stone-200 px-3.5 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-stone-700 dark:text-stone-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/20">
+              <Link href="/dashboard/doctors" className="press-active flex items-center justify-between rounded-full border border-hairline px-4 py-2.5 text-sm font-medium text-ink-80 transition-colors hover:border-action/40 hover:bg-emerald-50 hover:text-action dark:border-stone-700 dark:text-stone-300 dark:hover:bg-emerald-900/20">
                 Browse doctors
                 <ArrowRight01Icon className="size-4" />
               </Link>
-              <Link href="/dashboard/pharmacy" className="flex items-center justify-between rounded-lg border border-stone-200 px-3.5 py-2.5 text-sm font-medium text-stone-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-stone-700 dark:text-stone-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/20">
+              <Link href="/dashboard/pharmacy" className="press-active flex items-center justify-between rounded-full border border-hairline px-4 py-2.5 text-sm font-medium text-ink-80 transition-colors hover:border-action/40 hover:bg-emerald-50 hover:text-action dark:border-stone-700 dark:text-stone-300 dark:hover:bg-emerald-900/20">
                 {isPatient ? "My prescriptions" : "Pharmacy"}
                 <ArrowRight01Icon className="size-4" />
               </Link>

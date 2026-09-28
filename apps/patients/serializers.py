@@ -4,11 +4,12 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.users.models import CustomUser, Role
+from apps.utilities.models import BaseModelSerializer
 
 from .models import PatientProfile
 
 
-class PatientProfileSerializer(serializers.ModelSerializer):
+class PatientProfileSerializer(BaseModelSerializer):
     class Meta:
         model = PatientProfile
         fields = [
@@ -30,7 +31,7 @@ class PatientProfileSerializer(serializers.ModelSerializer):
         ]
 
 
-class PatientListSerializer(serializers.ModelSerializer):
+class PatientListSerializer(BaseModelSerializer):
     """Read shape for the staff patient lookup. `id` is the PatientProfile id
     (what an Appointment points to)."""
 

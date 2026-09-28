@@ -3,12 +3,13 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.appointments.models import Appointment
+from apps.utilities.models import BaseModelSerializer
 
 from .models import Invoice, InvoiceItem, InvoicePayment, PaymentMethod
 from .services import generate_invoice, record_invoice_payment
 
 
-class InvoiceItemSerializer(serializers.ModelSerializer):
+class InvoiceItemSerializer(BaseModelSerializer):
     class Meta:
         model = InvoiceItem
         fields = [
@@ -21,7 +22,7 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class InvoicePaymentSerializer(serializers.ModelSerializer):
+class InvoicePaymentSerializer(BaseModelSerializer):
     recorded_by_email = serializers.EmailField(
         source="recorded_by.email",
         read_only=True,
@@ -70,7 +71,7 @@ class InvoicePaymentCreateSerializer(serializers.Serializer):
                 {"payment": str(error)}
             ) from error
 
-class InvoiceSerializer(serializers.ModelSerializer):
+class InvoiceSerializer(BaseModelSerializer):
     items = InvoiceItemSerializer(many=True, read_only=True)
     payments = InvoicePaymentSerializer(many=True, read_only=True)
     balance = serializers.DecimalField(

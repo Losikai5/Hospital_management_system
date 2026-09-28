@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 
 from apps.core.permissions import HasCustomPermission, IsAppointmentOwner
 from apps.doctors.models import Specialization
+from apps.utilities.mixin import PaginationMixin
 
 from .models import Appointment, AppointmentStatus
 from .serializers import AppointmentCreateSerializer, AppointmentListSerializer
@@ -66,10 +67,12 @@ class AppointmentCreateView(APIView):
                 "prefix with - for descending order."
             ),
         ),
+        OpenApiParameter(name="page", type=int),
+        OpenApiParameter(name="page_size", type=int),
     ],
     responses={200: AppointmentListSerializer(many=True)},
 )
-class AppointmentListView(APIView):
+class AppointmentListView(PaginationMixin, APIView):
     serializer_class = AppointmentListSerializer
     permission_classes = [HasCustomPermission]
     required_permission = "can_view_appointments"
@@ -148,12 +151,12 @@ class AppointmentListView(APIView):
         return visible_queryset.order_by(ordering, "-appointment_time")
 
     def get(self, request):
-        serializer = self.serializer_class(
+        return self.paginate_list(
+            request,
             self.get_queryset(),
-            many=True,
+            self.serializer_class,
             context={"request": request},
         )
-        return Response(serializer.data)
 
 
 @extend_schema(

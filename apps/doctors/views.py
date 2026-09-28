@@ -12,6 +12,7 @@ from drf_spectacular.utils import (
 )
 
 from apps.core.permissions import HasCustomPermission
+from apps.utilities.mixin import PaginationMixin
 
 from .models import DoctorProfile, DoctorSchedule, Specialization
 from .serializers import (
@@ -115,17 +116,19 @@ class DoctorDirectoryBaseView(APIView):
                 "years_of_experience; prefix with - for descending order."
             ),
         ),
+        OpenApiParameter(name="page", type=int),
+        OpenApiParameter(name="page_size", type=int),
     ],
     responses={200: DoctorDirectorySerializer(many=True)},
 )
-class DoctorDirectoryView(DoctorDirectoryBaseView):
+class DoctorDirectoryView(PaginationMixin, DoctorDirectoryBaseView):
     def get(self, request):
-        serializer = self.serializer_class(
+        return self.paginate_list(
+            request,
             self.get_queryset(),
-            many=True,
+            self.serializer_class,
             context={"request": request},
         )
-        return Response(serializer.data)
 
 
 @extend_schema(

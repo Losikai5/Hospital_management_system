@@ -56,7 +56,7 @@ export default function AuditPage() {
         placeholder="Search actor, action, path, status or request ID"
         className="max-w-xl"
       />
-      <section className="overflow-hidden rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <section className="overflow-hidden rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
         {logs.loading ? (
           <div className="p-5"><LoadingRows rows={8} /></div>
         ) : logs.error ? (

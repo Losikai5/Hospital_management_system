@@ -3,6 +3,8 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
+from apps.utilities.models import TimeStampModel
+
 
 
 
@@ -15,7 +17,7 @@ class AppointmentStatus(models.TextChoices):
     NO_SHOW = 'NO_SHOW', _('No Show')
 
 
-class Appointment(models.Model):
+class Appointment(TimeStampModel):
     doctor = models.ForeignKey(
         'doctors.DoctorProfile',
         on_delete=models.PROTECT,
@@ -35,8 +37,6 @@ class Appointment(models.Model):
     )
     reason = models.TextField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = _('Appointment')

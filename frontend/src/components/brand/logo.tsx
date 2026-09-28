@@ -16,10 +16,10 @@ export function Logo({ variant = "dark", href = "/", className }: LogoProps) {
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <span
         className={cn(
-          "flex size-9 items-center justify-center rounded-xl text-sm font-bold shadow-sm",
+          "flex size-9 items-center justify-center rounded-[11px] text-sm font-bold",
           light
-            ? "bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-sm"
-            : "bg-emerald-600 text-white shadow-emerald-600/20 dark:bg-emerald-500"
+            ? "bg-white/10 text-white ring-1 ring-white/25 backdrop-blur-sm"
+            : "bg-action text-white"
         )}
         aria-hidden
       >

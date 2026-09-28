@@ -5,11 +5,12 @@ from rest_framework import serializers
 
 from apps.users.models import CustomUser
 from apps.users.serializers import UserProfileSerializer
+from apps.utilities.models import BaseModelSerializer
 
 from .models import DoctorProfile, DoctorSchedule
 
 
-class DoctorDirectorySerializer(serializers.ModelSerializer):
+class DoctorDirectorySerializer(BaseModelSerializer):
     first_name = serializers.CharField(
         source="user.first_name",
         read_only=True,
@@ -44,7 +45,7 @@ class DoctorDirectorySerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class DoctorScheduleSerializer(serializers.ModelSerializer):
+class DoctorScheduleSerializer(BaseModelSerializer):
     doctor = serializers.PrimaryKeyRelatedField(
         queryset=DoctorProfile.objects.select_related("user"),
         required=False,
@@ -158,7 +159,7 @@ class DoctorScheduleSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class DoctorOnboardingSerializer(serializers.ModelSerializer):
+class DoctorOnboardingSerializer(BaseModelSerializer):
     user_field_names = [
         "first_name",
         "last_name",

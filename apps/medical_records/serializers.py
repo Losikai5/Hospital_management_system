@@ -1,9 +1,10 @@
 from rest_framework import serializers
 
+from apps.utilities.models import BaseModelSerializer
 from .models import MedicalRecord
 
 
-class MedicalRecordCreateSerializer(serializers.ModelSerializer):
+class MedicalRecordCreateSerializer(BaseModelSerializer):
     class Meta:
         model = MedicalRecord
         fields = [
@@ -34,7 +35,7 @@ class MedicalRecordCreateSerializer(serializers.ModelSerializer):
         return value
 
 
-class MedicalRecordListSerializer(serializers.ModelSerializer):
+class MedicalRecordListSerializer(BaseModelSerializer):
     patient_email = serializers.EmailField(
         source="appointment.patient.user.email",
         read_only=True,

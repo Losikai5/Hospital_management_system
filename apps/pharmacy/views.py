@@ -12,6 +12,7 @@ from drf_spectacular.utils import (
 
 from apps.core.permissions import HasCustomPermission
 from apps.core.schemas import ErrorResponse, MessageResponse
+from apps.utilities.mixin import PaginationMixin
 
 from .models import (
     Medicine,
@@ -45,10 +46,12 @@ from .service import cancel_prescription, dispense_prescription
                 "prefix with - for descending order."
             ),
         ),
+        OpenApiParameter(name="page", type=int),
+        OpenApiParameter(name="page_size", type=int),
     ],
     responses={200: MedicineListSerializer(many=True)},
 )
-class MedicineListView(APIView):
+class MedicineListView(PaginationMixin, APIView):
     serializer_class = MedicineListSerializer
     permission_classes = [HasCustomPermission]
     required_permission = "can_view_medicines"
@@ -102,12 +105,12 @@ class MedicineListView(APIView):
         return queryset.order_by(ordering)
 
     def get(self, request):
-        serializer = self.serializer_class(
+        return self.paginate_list(
+            request,
             self.get_queryset(),
-            many=True,
+            self.serializer_class,
             context={"request": request},
         )
-        return Response(serializer.data)
 
 
 @extend_schema(
@@ -299,10 +302,12 @@ class PrescriptionListBaseView(APIView):
                 "prefix with - for descending order."
             ),
         ),
+        OpenApiParameter(name="page", type=int),
+        OpenApiParameter(name="page_size", type=int),
     ],
     responses={200: PrescriptionListSerializer(many=True)},
 )
-class PrescriptionListView(PrescriptionListBaseView):
+class PrescriptionListView(PaginationMixin, PrescriptionListBaseView):
     def get_queryset(self):
         user = self.request.user
         queryset = self.base_queryset()
@@ -323,12 +328,12 @@ class PrescriptionListView(PrescriptionListBaseView):
         return self.apply_filters(visible_queryset)
 
     def get(self, request):
-        serializer = self.serializer_class(
+        return self.paginate_list(
+            request,
             self.get_queryset(),
-            many=True,
+            self.serializer_class,
             context={"request": request},
         )
-        return Response(serializer.data)
 
 
 @extend_schema(
@@ -338,22 +343,26 @@ class PrescriptionListView(PrescriptionListBaseView):
         OpenApiParameter(name="status", type=str),
         OpenApiParameter(name="search", type=str),
         OpenApiParameter(name="ordering", type=str),
+        OpenApiParameter(name="page", type=int),
+        OpenApiParameter(name="page_size", type=int),
     ],
     responses={200: PrescriptionListSerializer(many=True)},
 )
-class PatientPrescriptionListView(PrescriptionListBaseView):
-    def get(self, request):
-        queryset = self.apply_filters(
+class PatientPrescriptionListView(PaginationMixin, PrescriptionListBaseView):
+    def get_queryset(self):
+        return self.apply_filters(
             self.base_queryset().filter(
-                medical_record__appointment__patient__user=request.user
+                medical_record__appointment__patient__user=self.request.user
             )
         )
-        serializer = self.serializer_class(
-            queryset,
-            many=True,
+
+    def get(self, request):
+        return self.paginate_list(
+            request,
+            self.get_queryset(),
+            self.serializer_class,
             context={"request": request},
         )
-        return Response(serializer.data)
 
 
 @extend_schema(

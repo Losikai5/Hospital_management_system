@@ -3,6 +3,8 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
+from apps.utilities.models import TimeStampModel
+
 
 class Specialization(models.TextChoices):
     GENERAL = 'GENERAL', _('General Practice')
@@ -17,7 +19,7 @@ class Specialization(models.TextChoices):
     GYNECOLOGY = 'GYNECOLOGY', _('Gynecology')
 
 
-class DoctorProfile(models.Model):
+class DoctorProfile(TimeStampModel):
     user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name='doctor_profile')
     specialization = models.CharField(max_length=50,choices=Specialization.choices,default=Specialization.GENERAL)
     license_number = models.CharField(max_length=100, unique=True)
@@ -25,8 +27,6 @@ class DoctorProfile(models.Model):
     bio = models.TextField(blank=True, null=True)
     consultation_fee = models.DecimalField(max_digits=10,decimal_places=2,default=0.00)
     is_available = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Dr. {self.user.email} ({self.specialization})"

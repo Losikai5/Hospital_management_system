@@ -48,7 +48,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-5 rounded-lg border border-stone-200 px-3.5 py-1.5 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+          className="press-active mt-5 rounded-full border border-hairline px-4 py-2 text-sm font-medium text-ink-80 transition-colors hover:bg-stone-50 hover:text-action dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
         >
           Try again
         </button>

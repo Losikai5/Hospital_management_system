@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from .models import Prescription, Medicine
+from apps.utilities.models import BaseModelSerializer
 
 
-class MedicineCreateSerializer(serializers.ModelSerializer):
+class MedicineCreateSerializer(BaseModelSerializer):
     class Meta:
         model  = Medicine
         fields = [
@@ -12,7 +13,7 @@ class MedicineCreateSerializer(serializers.ModelSerializer):
         ]
 
 
-class MedicineListSerializer(serializers.ModelSerializer):
+class MedicineListSerializer(BaseModelSerializer):
     # Edit 1: Declared is_low_stock as a serializer field
     # Reason: is_low_stock is a @property on the Medicine model,
     # not a database column. DRF cannot auto-detect properties
@@ -34,7 +35,7 @@ class MedicineListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
-class PrescriptionCreateSerializer(serializers.ModelSerializer):
+class PrescriptionCreateSerializer(BaseModelSerializer):
     class Meta:
         model  = Prescription
         fields = [
@@ -59,7 +60,7 @@ class PrescriptionCreateSerializer(serializers.ModelSerializer):
             )
         return value
 
-class PrescriptionListSerializer(serializers.ModelSerializer):
+class PrescriptionListSerializer(BaseModelSerializer):
     # Edit 4: Replaced raw ForeignKey fields with readable source fields
     # Reason: Without source, medicine and medical_record would just
     # show ID numbers like 1, 2, 3 — useless to anyone reading the API.

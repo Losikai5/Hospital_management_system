@@ -32,7 +32,7 @@ export default function RecordsPage() {
     <div className="space-y-6">
       <PageHeader title="Medical records" description="Diagnoses, treatments and clinical notes." />
 
-      <section className="rounded-xl border border-stone-200/70 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <section className="rounded-[18px] border border-hairline bg-canvas dark:border-stone-800 dark:bg-stone-900">
         {!records ? (
           <div className="p-5"><LoadingRows rows={5} /></div>
         ) : error ? (

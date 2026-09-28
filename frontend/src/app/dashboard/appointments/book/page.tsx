@@ -203,7 +203,7 @@ export default function BookAppointmentPage() {
       />
 
       <div className="max-w-xl">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
           {bookingForOthers && (
             <div className="space-y-2">
               <Label>Patient</Label>
@@ -380,7 +380,7 @@ export default function BookAppointmentPage() {
               id="reason"
               rows={3}
               placeholder="Briefly describe the reason for the visit"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="w-full rounded-[11px] border border-hairline bg-canvas px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               {...register("reason")}
             />
             {errors.reason && <p className="text-xs text-destructive">{errors.reason.message}</p>}

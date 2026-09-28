@@ -5,6 +5,8 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.utilities.models import TimeStampModel
+
 
 class InvoiceStatus(models.TextChoices):
     UNPAID = "UNPAID", _("Unpaid")
@@ -20,7 +22,7 @@ class PaymentMethod(models.TextChoices):
     BANK_TRANSFER = "BANK_TRANSFER", _("Bank transfer")
 
 
-class Invoice(models.Model):
+class Invoice(TimeStampModel):
     appointment = models.OneToOneField(
         "appointments.Appointment",
         on_delete=models.PROTECT,
@@ -43,8 +45,6 @@ class Invoice(models.Model):
         choices=InvoiceStatus.choices,
         default=InvoiceStatus.UNPAID,
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]

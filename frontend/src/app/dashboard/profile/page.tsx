@@ -235,7 +235,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <PageHeader title="Profile" description="Manage your personal details and security." />
 
-      <div className="flex items-center gap-4 rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex items-center gap-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
         <div className="flex size-16 items-center justify-center rounded-2xl bg-emerald-100 text-2xl font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
           {user.first_name?.[0] ?? user.email[0]?.toUpperCase() ?? "U"}
         </div>
@@ -251,7 +251,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <form onSubmit={profileForm.handleSubmit(onSaveProfile)} className="space-y-4 rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+        <form onSubmit={profileForm.handleSubmit(onSaveProfile)} className="space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
             <UserCircleIcon className="size-4 text-emerald-600 dark:text-emerald-400" /> Personal information
           </h3>
@@ -286,7 +286,7 @@ export default function ProfilePage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
-            <textarea id="address" rows={2} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" {...profileForm.register("address")} />
+            <textarea id="address" rows={2} className="w-full rounded-[11px] border border-hairline bg-canvas px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" {...profileForm.register("address")} />
           </div>
           <Button type="submit" className="w-full" disabled={savingProfile}>
             {savingProfile ? "Saving..." : "Save changes"}
@@ -294,7 +294,7 @@ export default function ProfilePage() {
         </form>
 
         {user.role === "PATIENT" && (
-          <form onSubmit={patientForm.handleSubmit(onSavePatient)} className="space-y-4 rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+          <form onSubmit={patientForm.handleSubmit(onSavePatient)} className="space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
               <HeartCheckIcon className="size-4 text-emerald-600 dark:text-emerald-400" /> Health information
             </h3>
@@ -319,11 +319,11 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="medical_history_summary">Medical history</Label>
-              <textarea id="medical_history_summary" rows={3} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Allergies, chronic conditions, past surgeries…" {...patientForm.register("medical_history_summary")} />
+              <textarea id="medical_history_summary" rows={3} className="w-full rounded-[11px] border border-hairline bg-canvas px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Allergies, chronic conditions, past surgeries…" {...patientForm.register("medical_history_summary")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="insurance_details">Insurance details</Label>
-              <textarea id="insurance_details" rows={2} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" {...patientForm.register("insurance_details")} />
+              <textarea id="insurance_details" rows={2} className="w-full rounded-[11px] border border-hairline bg-canvas px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" {...patientForm.register("insurance_details")} />
             </div>
             <Button type="submit" className="w-full" variant="outline" disabled={savingPatient}>
               {savingPatient ? "Saving..." : "Save health info"}
@@ -332,7 +332,7 @@ export default function ProfilePage() {
         )}
 
         {user.role === "DOCTOR" && (
-          <form onSubmit={doctorForm.handleSubmit(onSaveDoctor)} className="space-y-4 rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+          <form onSubmit={doctorForm.handleSubmit(onSaveDoctor)} className="space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
               <Doctor01Icon className="size-4 text-emerald-600 dark:text-emerald-400" /> Professional information
             </h3>
@@ -373,7 +373,7 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
-              <textarea id="bio" rows={3} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Short professional bio shown to patients" {...doctorForm.register("bio")} />
+              <textarea id="bio" rows={3} className="w-full rounded-[11px] border border-hairline bg-canvas px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50" placeholder="Short professional bio shown to patients" {...doctorForm.register("bio")} />
             </div>
             <label className="flex items-center gap-2.5 text-sm text-stone-700 dark:text-stone-300">
               <input type="checkbox" className="size-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500 dark:border-stone-600" {...doctorForm.register("is_available")} />
@@ -385,7 +385,7 @@ export default function ProfilePage() {
           </form>
         )}
 
-        <form onSubmit={passwordForm.handleSubmit(onChangePassword)} className="space-y-4 rounded-xl border border-stone-200/70 bg-white p-6 shadow-sm dark:border-stone-800 dark:bg-stone-900">
+        <form onSubmit={passwordForm.handleSubmit(onChangePassword)} className="space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
             <SecurityLockIcon className="size-4 text-emerald-600 dark:text-emerald-400" /> Change password
           </h3>
