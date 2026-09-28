@@ -7,13 +7,21 @@ from ai.agent import (
 )
 from ai.service import execute_sql
 from ai.state import AgentState
+from .sql_validator import validate_sql
+
 
 
 def generate_sql_node(state: AgentState):
+  
+
     sql = generate_sql(
         state["question"],
         user=state.get("user"),
     )
+
+
+    
+    print("GENERATED SQL:", sql)
 
     return {
         "sql": sql
@@ -21,15 +29,41 @@ def generate_sql_node(state: AgentState):
 
 
 def execute_sql_node(state: AgentState):
-    print("GENERATED SQL:", state["sql"])
+    sql = state["sql"]
+    print("GENERATED SQL:", sql)
+    validation = validate_sql(sql)
+    if not validation["valid"]:
+        return {
+            "sql_validation":validation,
+            "result":{
+                "columns":[],
+                "rows":[],
+                "rowcount":0
+            },
+        }
     result = execute_sql(state["sql"])
 
     print("SQL RESULT:", result)
 
     return {
+        "sql_validation":validation,
         "result": result
     }
 
+def route_after_sql(state: AgentState):
+    if state["sql_validation"]["valid"]:
+        return "valid"
+
+    return "invalid"
+
+
+def sql_validation_error_node(state: AgentState):
+    return {
+        "answer": (
+            "I couldn't complete that request because "
+            "the database operation generated for it isn't allowed."
+        )
+    }
 
 def generate_answer_node(state: AgentState):
     answer = generate_answer(

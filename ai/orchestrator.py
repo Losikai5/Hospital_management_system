@@ -9,6 +9,8 @@ from ai.nodes import (
     generate_answer_node,
     generate_general_answer_node,
     generate_user_answer_node,
+    route_after_sql,
+    sql_validation_error_node,
 )
 
 
@@ -22,6 +24,11 @@ graph_builder = StateGraph(AgentState)
 graph_builder.add_node(
     "classify",
     classify_question_node,
+)
+
+graph_builder.add_node(
+    "sql_validation_error",
+    sql_validation_error_node,
 )
 
 graph_builder.add_node(
@@ -73,9 +80,18 @@ graph_builder.add_edge(
     "execute_sql",
 )
 
-graph_builder.add_edge(
+graph_builder.add_conditional_edges(
     "execute_sql",
-    "generate_answer",
+    route_after_sql,
+    {
+        "valid": "generate_answer",
+        "invalid": "sql_validation_error",
+    },
+)
+
+graph_builder.add_edge(
+    "sql_validation_error",
+    END,
 )
 
 graph_builder.add_edge(
