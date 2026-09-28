@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiChipIcon, Cancel01Icon, ChatBotIcon, SentIcon } from "hugeicons-react";
+import { motion } from "motion/react";
 import { getAuthenticatedAiChatWebSocketUrl, type AiChatResponse } from "@/lib/ai-chat";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,7 @@ export function AiChatWidget() {
   const isConnectingRef = useRef(false);
   const closeRequestedRef = useRef(false);
   const latestMessageRef = useRef<HTMLDivElement | null>(null);
+  const bubbleBoundsRef = useRef<HTMLDivElement | null>(null);
 
   const addMessage = useCallback((role: ChatMessage["role"], text: string) => {
     setMessages((current) => [...current, { id: Date.now() + current.length, role, text }]);
@@ -143,14 +145,25 @@ export function AiChatWidget() {
 
   if (!isOpen) {
     return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-5 right-5 z-[60] flex size-14 items-center justify-center rounded-full bg-action text-white transition-transform hover:scale-105 hover:bg-focus focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-action/30"
-        aria-label="Open AI assistant"
-      >
-        <ChatBotIcon className="size-6" />
-      </button>
+      <div ref={bubbleBoundsRef} className="pointer-events-none fixed inset-5 z-[60]">
+        <motion.button
+          type="button"
+          drag
+          dragConstraints={bubbleBoundsRef}
+          dragElastic={0}
+          dragMomentum={false}
+          onTap={() => setIsOpen(true)}
+          onClick={(event) => {
+            if (event.detail === 0) setIsOpen(true);
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="pointer-events-auto absolute bottom-0 right-0 flex size-14 cursor-grab touch-none select-none items-center justify-center rounded-full bg-action text-white active:cursor-grabbing hover:bg-focus focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-action/30"
+          aria-label="Open AI assistant"
+        >
+          <ChatBotIcon className="size-6" />
+        </motion.button>
+      </div>
     );
   }
 
