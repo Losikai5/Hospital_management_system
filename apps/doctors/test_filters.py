@@ -18,18 +18,21 @@ class DoctorOrderingTests(APITestCase):
         self.viewer = CustomUser.objects.create_user(
             email="viewer@example.com",
             password="SafePassword!123",
-            role=role,
+            roles=[role],
+            permissions=role.permissions.all(),
         )
         doctor_role = Role.objects.create(code="DOCTOR", name="Doctor")
         expensive_user = CustomUser.objects.create_user(
             email="expensive@example.com",
             password="SafePassword!123",
-            role=doctor_role,
+            roles=[doctor_role],
+            permissions=doctor_role.permissions.all(),
         )
         affordable_user = CustomUser.objects.create_user(
             email="affordable@example.com",
             password="SafePassword!123",
-            role=doctor_role,
+            roles=[doctor_role],
+            permissions=doctor_role.permissions.all(),
         )
         self.expensive = DoctorProfile.objects.create(
             user=expensive_user,

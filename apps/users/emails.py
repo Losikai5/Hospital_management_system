@@ -12,8 +12,11 @@ def send_staff_invitation_email(*, invitation, token):
     )
 
     subject = "You have been invited to the hospital system"
+    role_names = ", ".join(
+        invitation.user.roles.order_by("code").values_list("name", flat=True)
+    )
     message = (
-        f"You have been invited as {invitation.user.role.name}.\n\n"
+        f"You have been invited as {role_names}.\n\n"
         "Use the following link to accept the invitation:\n"
         f"{acceptance_url}\n\n"
         f"This invitation expires at {invitation.expires_at}."

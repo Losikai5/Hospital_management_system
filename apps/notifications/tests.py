@@ -44,17 +44,20 @@ class NotificationTaskTests(TestCase):
         doctor_user = CustomUser.objects.create_user(
             email="doctor@example.com",
             password="SafePassword!123",
-            role=doctor_role,
+            roles=[doctor_role],
+            permissions=doctor_role.permissions.all(),
         )
         patient_user = CustomUser.objects.create_user(
             email="patient@example.com",
             password="SafePassword!123",
-            role=patient_role,
+            roles=[patient_role],
+            permissions=patient_role.permissions.all(),
         )
         CustomUser.objects.create_user(
             email="pharmacist@example.com",
             password="SafePassword!123",
-            role=pharmacist_role,
+            roles=[pharmacist_role],
+            permissions=pharmacist_role.permissions.all(),
         )
         self.doctor = DoctorProfile.objects.create(
             user=doctor_user,

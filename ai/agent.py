@@ -892,7 +892,7 @@ def format_user_context(user) -> str:
         f"phone: {user.phone or 'Not provided'}",
         f"date_of_birth: {user.date_of_birth or 'Not provided'}",
         f"gender: {user.gender or 'Not provided'}",
-        f"role: {user.role_code}",
+        f"roles: {', '.join(user.role_codes)}",
     ]
 
     try:
@@ -915,12 +915,19 @@ def generate_sql(
     user=None,
     query_context: str = "",
 ) -> str:
+    user_id = (
+        str(user.pk)
+        if user is not None and user.is_authenticated
+        else "None"
+
+    )
     prompt = SQL_PROMPT.invoke(
         {
             "schema": SCHEMA_TEXT,
             "question": question,
             "user_context": format_user_context(user),
             "query_context": query_context,
+            "user_id":user_id,
         }
     )
 

@@ -40,17 +40,20 @@ class PharmacyFilterTests(APITestCase):
         self.viewer = CustomUser.objects.create_user(
             email="viewer@example.com",
             password="SafePassword!123",
-            role=viewer_role,
+            roles=[viewer_role],
+            permissions=viewer_role.permissions.all(),
         )
         doctor_user = CustomUser.objects.create_user(
             email="doctor@example.com",
             password="SafePassword!123",
-            role=doctor_role,
+            roles=[doctor_role],
+            permissions=doctor_role.permissions.all(),
         )
         patient_user = CustomUser.objects.create_user(
             email="filter-patient@example.com",
             password="SafePassword!123",
-            role=patient_role,
+            roles=[patient_role],
+            permissions=patient_role.permissions.all(),
         )
         doctor = DoctorProfile.objects.create(
             user=doctor_user,

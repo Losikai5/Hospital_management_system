@@ -24,17 +24,20 @@ class NotificationTriggerIntegrationTests(TestCase):
         self.doctor_user = CustomUser.objects.create_user(
             email="doctor-trigger@example.com",
             password="SafePassword!123",
-            role=doctor_role,
+            roles=[doctor_role],
+            permissions=doctor_role.permissions.all(),
         )
         self.patient_user = CustomUser.objects.create_user(
             email="patient-trigger@example.com",
             password="SafePassword!123",
-            role=patient_role,
+            roles=[patient_role],
+            permissions=patient_role.permissions.all(),
         )
         self.pharmacist_user = CustomUser.objects.create_user(
             email="pharmacist-trigger@example.com",
             password="SafePassword!123",
-            role=pharmacist_role,
+            roles=[pharmacist_role],
+            permissions=pharmacist_role.permissions.all(),
         )
         self.doctor = DoctorProfile.objects.create(
             user=self.doctor_user,

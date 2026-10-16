@@ -44,22 +44,26 @@ class BillingApiTests(APITestCase):
         self.staff_user = CustomUser.objects.create_user(
             email="billing@example.com",
             password="SafePassword!123",
-            role=self.billing_role,
+            roles=[self.billing_role],
+            permissions=self.billing_role.permissions.all(),
         )
         self.patient_user = CustomUser.objects.create_user(
             email="patient@example.com",
             password="SafePassword!123",
-            role=self.patient_role,
+            roles=[self.patient_role],
+            permissions=self.patient_role.permissions.all(),
         )
         self.other_patient_user = CustomUser.objects.create_user(
             email="other-patient@example.com",
             password="SafePassword!123",
-            role=self.patient_role,
+            roles=[self.patient_role],
+            permissions=self.patient_role.permissions.all(),
         )
         doctor_user = CustomUser.objects.create_user(
             email="doctor@example.com",
             password="SafePassword!123",
-            role=self.doctor_role,
+            roles=[self.doctor_role],
+            permissions=self.doctor_role.permissions.all(),
         )
         self.doctor = DoctorProfile.objects.create(
             user=doctor_user,

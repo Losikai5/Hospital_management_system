@@ -30,7 +30,8 @@ class DoctorDirectoryBaseView(APIView):
     def get_queryset(self):
         queryset = DoctorProfile.objects.select_related(
             "user",
-            "user__role",
+        ).prefetch_related(
+            "user__roles",
         )
 
         if self.request.user.has_permission("can_view_all_doctors"):
@@ -39,8 +40,8 @@ class DoctorDirectoryBaseView(APIView):
             visible_queryset = queryset.filter(
                 is_available=True,
                 user__is_active=True,
-                user__role__is_active=True,
-            )
+                user__roles__is_active=True,
+            ).distinct()
 
         specialization = self.request.query_params.get("specialization")
         if specialization:
@@ -301,7 +302,9 @@ class DoctorOnboardingView(APIView):
         return get_object_or_404(
             DoctorProfile.objects.select_related(
                 "user",
-                "user__role",
+            ).prefetch_related(
+                "user__roles",
+                "user__permissions",
             ),
             user=user,
         )

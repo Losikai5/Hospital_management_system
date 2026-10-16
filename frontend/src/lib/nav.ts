@@ -22,11 +22,18 @@ const items = [
 ];
 
 export function navForUser(user: AuthUser) {
+  const isAdmin = (user.is_superuser ?? false) || user.roles.includes("ADMIN");
+  const has = (permission: string) => isAdmin || user.permissions.includes(permission);
+  const hasAny = (prefixes: string[]) =>
+    isAdmin ||
+    user.permissions.some((permission) =>
+      prefixes.some((prefix) => permission.includes(prefix))
+    );
   return items.filter((item) => {
-    if (item.href === "/dashboard/staff") return user.permissions.includes("can_view_roles") || user.permissions.includes("can_create_users");
-    if (item.href === "/dashboard/billing") return user.permissions.includes("can_view_invoices") || user.permissions.includes("can_create_invoices");
-    if (item.href === "/dashboard/records") return user.permissions.some((permission) => permission.includes("medical_records"));
-    if (item.href === "/dashboard/pharmacy") return user.permissions.some((permission) => permission.includes("medicine") || permission.includes("prescription"));
+    if (item.href === "/dashboard/staff") return has("can_view_roles") || has("can_view_users") || has("can_create_users");
+    if (item.href === "/dashboard/billing") return has("can_view_invoices") || has("can_create_invoices");
+    if (item.href === "/dashboard/records") return hasAny(["medical_records"]);
+    if (item.href === "/dashboard/pharmacy") return hasAny(["medicine", "prescription"]);
     return true;
   });
 }

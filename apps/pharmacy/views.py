@@ -314,11 +314,11 @@ class PrescriptionListView(PaginationMixin, PrescriptionListBaseView):
 
         if user.has_permission("can_view_all_prescriptions"):
             visible_queryset = queryset
-        elif user.role_code == "DOCTOR":
+        elif user.has_role("DOCTOR"):
             visible_queryset = queryset.filter(
                 medical_record__appointment__doctor__user=user
             )
-        elif user.role_code == "PATIENT":
+        elif user.has_role("PATIENT"):
             visible_queryset = queryset.filter(
                 medical_record__appointment__patient__user=user
             )

@@ -22,10 +22,10 @@ import { formatDate, formatTime } from "@/lib/format";
 import type { Appointment, Doctor, Medicine, Prescription, MedicalRecord } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { user, hasPermission } = useAuth();
-  const isPatient = user?.role === "PATIENT";
-  const isPharmacist = user?.role === "PHARMACIST";
-  const isAdmin = user?.role === "ADMIN";
+  const { user, hasPermission, hasRole } = useAuth();
+  const isPatient = hasRole("PATIENT");
+  const isPharmacist = hasRole("PHARMACIST");
+  const isAdmin = hasRole("ADMIN");
 
   const canViewAppointments = hasPermission("can_view_appointments") || hasPermission("can_view_all_appointments");
   const canViewDoctors = hasPermission("can_view_doctors") || hasPermission("can_view_all_doctors");
@@ -139,7 +139,7 @@ export default function DashboardPage() {
                       <span className="text-sm font-bold leading-tight">{formatDate(a.appointment_date).split(" ")[1].replace(",", "")}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-stone-900 dark:text-stone-50">{user.role === "DOCTOR" ? a.patient_name : a.doctor_name}</div>
+                      <div className="truncate text-sm font-medium text-stone-900 dark:text-stone-50">{hasRole("DOCTOR") ? a.patient_name : a.doctor_name}</div>
                       <div className="truncate text-xs text-stone-500 dark:text-stone-400">
                         {a.doctor_specialization} · {formatTime(a.appointment_time)}
                         {a.reason ? ` · ${a.reason}` : ""}

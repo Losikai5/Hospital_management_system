@@ -44,9 +44,9 @@ class MedicalRecordVisibilityMixin:
         )
         if user.has_permission("can_view_all_medical_records"):
             return queryset
-        if user.role_code == "DOCTOR":
+        if user.has_role("DOCTOR"):
             return queryset.filter(appointment__doctor__user=user)
-        if user.role_code == "PATIENT":
+        if user.has_role("PATIENT"):
             return queryset.filter(appointment__patient__user=user)
         return MedicalRecord.objects.none()
 

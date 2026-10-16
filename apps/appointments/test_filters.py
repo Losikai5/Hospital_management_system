@@ -39,18 +39,21 @@ class AppointmentFilterTests(APITestCase):
         self.staff = CustomUser.objects.create_user(
             email="staff@example.com",
             password="SafePassword!123",
-            role=staff_role,
+            roles=[staff_role],
+            permissions=staff_role.permissions.all(),
         )
         first_patient_user = CustomUser.objects.create_user(
             email="alice@example.com",
             password="SafePassword!123",
-            role=patient_role,
+            roles=[patient_role],
+            permissions=patient_role.permissions.all(),
             first_name="Alice",
         )
         second_patient_user = CustomUser.objects.create_user(
             email="bob@example.com",
             password="SafePassword!123",
-            role=patient_role,
+            roles=[patient_role],
+            permissions=patient_role.permissions.all(),
             first_name="Bob",
         )
         self.first_patient = PatientProfile.objects.create(
@@ -62,12 +65,14 @@ class AppointmentFilterTests(APITestCase):
         first_doctor_user = CustomUser.objects.create_user(
             email="pediatrician@example.com",
             password="SafePassword!123",
-            role=doctor_role,
+            roles=[doctor_role],
+            permissions=doctor_role.permissions.all(),
         )
         second_doctor_user = CustomUser.objects.create_user(
             email="cardiologist@example.com",
             password="SafePassword!123",
-            role=doctor_role,
+            roles=[doctor_role],
+            permissions=doctor_role.permissions.all(),
         )
         pediatrician = DoctorProfile.objects.create(
             user=first_doctor_user,

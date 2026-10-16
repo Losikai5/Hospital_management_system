@@ -185,9 +185,8 @@ def process_low_stock_notification(medicine_id):
         CustomUser.objects
         .filter(
             is_active=True,
-            role__is_active=True,
-            role__permissions__is_active=True,
-            role__permissions__code__in=[
+            permissions__is_active=True,
+            permissions__code__in=[
                 "can_view_all_medicines",
                 "can_dispense_prescriptions",
             ],

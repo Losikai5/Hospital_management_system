@@ -54,7 +54,8 @@ class PharmacyApiTests(APITestCase):
         self.doctor_user = CustomUser.objects.create_user(
             email="doctor@example.com",
             password="SafePassword!123",
-            role=self.doctor_role,
+            roles=[self.doctor_role],
+            permissions=self.doctor_role.permissions.all(),
         )
         self.doctor = DoctorProfile.objects.create(
             user=self.doctor_user,
@@ -63,7 +64,8 @@ class PharmacyApiTests(APITestCase):
         self.other_doctor_user = CustomUser.objects.create_user(
             email="other-doctor@example.com",
             password="SafePassword!123",
-            role=self.doctor_role,
+            roles=[self.doctor_role],
+            permissions=self.doctor_role.permissions.all(),
         )
         self.other_doctor = DoctorProfile.objects.create(
             user=self.other_doctor_user,
@@ -72,13 +74,15 @@ class PharmacyApiTests(APITestCase):
         self.patient_user = CustomUser.objects.create_user(
             email="patient@example.com",
             password="SafePassword!123",
-            role=self.patient_role,
+            roles=[self.patient_role],
+            permissions=self.patient_role.permissions.all(),
         )
         self.patient = PatientProfile.objects.create(user=self.patient_user)
         self.pharmacist_user = CustomUser.objects.create_user(
             email="pharmacist@example.com",
             password="SafePassword!123",
-            role=self.pharmacist_role,
+            roles=[self.pharmacist_role],
+            permissions=self.pharmacist_role.permissions.all(),
         )
         self.prescription_manager_role = create_role(
             "PRESCRIPTION_MANAGER",
@@ -90,7 +94,8 @@ class PharmacyApiTests(APITestCase):
         self.prescription_manager_user = CustomUser.objects.create_user(
             email="prescription-manager@example.com",
             password="SafePassword!123",
-            role=self.prescription_manager_role,
+            roles=[self.prescription_manager_role],
+            permissions=self.prescription_manager_role.permissions.all(),
         )
         self.appointment = Appointment.objects.create(
             doctor=self.doctor,

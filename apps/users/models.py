@@ -1,7 +1,12 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from apps.utilities.models import SoftDeletableTimestampModel
 
 
 class Permission(models.Model):
@@ -56,23 +61,39 @@ class RolePermission(models.Model):
         return f"{self.role.code}: {self.permission.code}"
 
 
+class UserPermission(models.Model):
+    pass
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError(_("The Email field must be set"))
 
-        if not extra_fields.get("role"):
-            raise ValueError(_("A role must be assigned to the user"))
+        roles = extra_fields.pop("roles", None)
+        permissions = extra_fields.pop("permissions", None)
+
+        if not roles:
+            raise ValueError(_("At least one role must be assigned to the user"))
 
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+
+        if isinstance(roles, (list, tuple, set)):
+            user.roles.set(roles)
+        else:
+            user.roles.set([roles])
+
+        if permissions is not None:
+            user.permissions.set(permissions)
+
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("is_superuser", True)
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError(_("Admin user must have is_staff=True."))
@@ -80,23 +101,34 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get("is_active") is not True:
             raise ValueError(_("Admin user must have is_active=True."))
 
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError(_("Superuser must have is_superuser=True."))
+
         try:
             admin_role = Role.objects.get(code="ADMIN", is_active=True)
         except Role.DoesNotExist as error:
             raise ValueError(_("The ADMIN role must be created first.")) from error
 
-        extra_fields["role"] = admin_role
+        extra_fields["roles"] = [admin_role]
+        extra_fields["permissions"] = list(
+            Permission.objects.filter(is_active=True)
+        )
         return self.create_user(email, password, **extra_fields)
 
 
-class CustomUser(AbstractBaseUser):
+class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_("email address"), unique=True)
     first_name = models.CharField(max_length=150, blank=True, default="")
     last_name = models.CharField(max_length=150, blank=True, default="")
-    role = models.ForeignKey(
+    roles = models.ManyToManyField(
         Role,
-        on_delete=models.PROTECT,
-        related_name="users",
+        related_name="user_roles",
+        blank=True,
+    )
+    permissions = models.ManyToManyField(
+        Permission,
+        related_name="user_grants",
+        blank=True,
     )
     phone = models.CharField(max_length=15, blank=True, null=True)
     date_of_birth = models.DateField(blank=True, null=True)
@@ -124,26 +156,48 @@ class CustomUser(AbstractBaseUser):
     objects = CustomUserManager()
 
     @property
-    def role_code(self):
-        return self.role.code
+    def role_codes(self):
+        return list(self.roles.values_list("code", flat=True))
+
+    def has_role(self, role_code):
+        return self.roles.filter(code=role_code, is_active=True).exists()
+
+    def get_permission_codes(self):
+        return list(
+            self.permissions.filter(is_active=True)
+            .order_by("code")
+            .values_list("code", flat=True)
+        )
 
     def has_permission(self, permission_code):
-        if not self.is_active or not self.role.is_active:
+        if not self.is_active:
             return False
 
-        return self.role.permissions.filter(
+        if self.is_superuser:
+            return True
+
+        if self.roles.filter(code="ADMIN", is_active=True).exists():
+            return True
+
+        return self.permissions.filter(
             code=permission_code,
             is_active=True,
         ).exists()
 
     def has_perm(self, perm, obj=None):
-        return self.is_active and self.is_staff and self.role_code == "ADMIN"
+        if self.is_active and self.is_superuser:
+            return True
+
+        return self.is_active and self.is_staff and "ADMIN" in self.role_codes
 
     def has_module_perms(self, app_label):
-        return self.is_active and self.is_staff and self.role_code == "ADMIN"
+        if self.is_active and self.is_superuser:
+            return True
+
+        return self.is_active and self.is_staff and "ADMIN" in self.role_codes
 
     def __str__(self):
-        return f"{self.email} ({self.role})"
+        return f"{self.email} ({', '.join(self.role_codes)})"
 
     class Meta:
         verbose_name = _("User")

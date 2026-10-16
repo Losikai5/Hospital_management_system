@@ -103,3 +103,16 @@ export type RoleDetail = {
   permissions: string[];
   is_system: boolean;
 };
+
+export type StaffUser = {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  roles: string[];
+  permissions: string[];
+  is_active: boolean;
+  is_verified: boolean;
+  is_superuser?: boolean;
+  created_at: string;
+};

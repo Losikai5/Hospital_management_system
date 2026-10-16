@@ -12,7 +12,8 @@ class TokenRefreshAPIViewTests(APITestCase):
         self.user = CustomUser.objects.create_user(
             email="token-refresh@example.com",
             password="SafePassword!123",
-            role=role,
+            roles=[role],
+            permissions=role.permissions.all(),
         )
 
     def test_rotates_a_valid_refresh_token(self):

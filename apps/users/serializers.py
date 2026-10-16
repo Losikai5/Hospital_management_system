@@ -43,7 +43,8 @@ class UserRegistrationSerializer(BaseModelSerializer):
             user = CustomUser.objects.create_user(
                 email=validated_data.pop("email"),
                 password=password,
-                role=patient_role,
+                roles=[patient_role],
+                permissions=patient_role.permissions.filter(is_active=True),
                 **validated_data,
             )
             PatientProfile.objects.create(user=user)
@@ -52,7 +53,11 @@ class UserRegistrationSerializer(BaseModelSerializer):
 
 
 class UserProfileSerializer(BaseModelSerializer):
-    role = serializers.CharField(source="role.code", read_only=True)
+    roles = serializers.SlugRelatedField(
+        many=True,
+        slug_field="code",
+        read_only=True,
+    )
     permissions = serializers.SerializerMethodField()
 
     class Meta:
@@ -62,8 +67,9 @@ class UserProfileSerializer(BaseModelSerializer):
             "email",
             "first_name",
             "last_name",
-            "role",
+            "roles",
             "permissions",
+            "is_superuser",
             "phone",
             "date_of_birth",
             "gender",
@@ -72,14 +78,17 @@ class UserProfileSerializer(BaseModelSerializer):
             "is_verified",
             "created_at",
         ]
-        read_only_fields = ["id", "email", "role", "is_verified", "created_at"]
+        read_only_fields = [
+            "id",
+            "email",
+            "roles",
+            "is_superuser",
+            "is_verified",
+            "created_at",
+        ]
 
     def get_permissions(self, obj) -> list[str]:
-        return list(
-            obj.role.permissions.filter(is_active=True)
-            .order_by("code")
-            .values_list("code", flat=True)
-        )
+        return obj.get_permission_codes()
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -112,21 +121,25 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class StaffInvitationSerializer(serializers.Serializer):
-    email  = serializers.EmailField(required=True)
-    role =   serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
+    roles = serializers.SlugRelatedField(
+        many=True,
+        slug_field="code",
+        queryset=Role.objects.filter(is_active=True),
+        allow_empty=False,
+    )
+    permissions = serializers.SlugRelatedField(
+        many=True,
+        slug_field="code",
+        queryset=Permission.objects.filter(is_active=True),
+        required=False,
+    )
 
     def validate_email(self, value):
         email = CustomUser.objects.normalize_email(value)
         if CustomUser.objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError("A user with that email already exists.")
         return email
-
-    def validate_role(self, value):
-        try:
-            role = Role.objects.get(code=value.upper(), is_active=True)
-        except Role.DoesNotExist:
-            raise serializers.ValidationError("The specified role does not exist or is inactive.")
-        return role
 
 class StaffInvitationAcceptSerializer(serializers.Serializer):
     token = serializers.CharField(write_only=True, required=True,trim_whitespace=True)
@@ -269,3 +282,85 @@ class RolePermissionUpdateSerializer(serializers.Serializer):
                 f"Unknown permissions: {', '.join(sorted(missing))}"
             )
         return value
+
+
+class StaffUserSerializer(serializers.ModelSerializer):
+    roles = serializers.SlugRelatedField(
+        many=True,
+        slug_field="code",
+        read_only=True,
+    )
+    permissions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "roles",
+            "permissions",
+            "is_active",
+            "is_verified",
+            "is_superuser",
+            "created_at",
+        ]
+
+    def get_permissions(self, obj) -> list[str]:
+        return obj.get_permission_codes()
+
+
+class StaffUserUpdateSerializer(serializers.Serializer):
+    roles = serializers.SlugRelatedField(
+        many=True,
+        slug_field="code",
+        queryset=Role.objects.filter(is_active=True),
+        required=False,
+        allow_empty=False,
+    )
+    permissions = serializers.SlugRelatedField(
+        many=True,
+        slug_field="code",
+        queryset=Permission.objects.filter(is_active=True),
+        required=False,
+    )
+    is_active = serializers.BooleanField(required=False)
+    apply_role_defaults = serializers.BooleanField(required=False, default=False)
+
+    def validate(self, attrs):
+        roles_provided = "roles" in attrs
+        if not any(
+            key in attrs
+            for key in ("roles", "permissions", "is_active", "apply_role_defaults")
+        ):
+            raise serializers.ValidationError("No changes were provided.")
+        if attrs.get("apply_role_defaults") and not roles_provided:
+            raise serializers.ValidationError(
+                {
+                    "apply_role_defaults": (
+                        "Provide 'roles' together with apply_role_defaults."
+                    )
+                }
+            )
+        return attrs
+
+    def update(self, instance, validated_data):
+        roles = validated_data.get("roles")
+        if roles is not None:
+            instance.roles.set(roles)
+
+        if validated_data.get("apply_role_defaults"):
+            default_permissions = Permission.objects.filter(
+                is_active=True,
+                roles__in=instance.roles.all(),
+            ).distinct()
+            instance.permissions.set(default_permissions)
+        elif "permissions" in validated_data:
+            instance.permissions.set(validated_data["permissions"])
+
+        if "is_active" in validated_data:
+            instance.is_active = validated_data["is_active"]
+            instance.save(update_fields=["is_active", "updated_at"])
+
+        return instance

@@ -54,7 +54,7 @@ class PatientListCreateView(PaginationMixin, APIView):
             return PatientProfile.objects.none()
 
         queryset = PatientProfile.objects.select_related("user").filter(
-            user__role__code="PATIENT",
+            user__roles__code="PATIENT",
         )
 
         q = self.request.query_params.get("q")
@@ -115,12 +115,11 @@ class PatientDetailView(APIView):
 
     def get_object(self, pk):
         return get_object_or_404(
-            PatientProfile.objects.select_related(
-                "user",
-                "user__role",
+            PatientProfile.objects.select_related("user").prefetch_related(
+                "user__roles",
             ),
             pk=pk,
-            user__role__code="PATIENT",
+            user__roles__code="PATIENT",
         )
 
     def get(self, request, pk):
@@ -167,7 +166,9 @@ class PatientProfileView(APIView):
         return get_object_or_404(
             PatientProfile.objects.select_related(
                 "user",
-                "user__role",
+            ).prefetch_related(
+                "user__roles",
+                "user__permissions",
             ),
             user=user,
         )

@@ -29,12 +29,14 @@ class AuditLogTests(APITestCase):
         self.viewer = CustomUser.objects.create_user(
             email="auditor@example.com",
             password="SafePassword!123",
-            role=viewer_role,
+            roles=[viewer_role],
+            permissions=viewer_role.permissions.all(),
         )
         self.user = CustomUser.objects.create_user(
             email="patient-audit@example.com",
             password="SafePassword!123",
-            role=user_role,
+            roles=[user_role],
+            permissions=user_role.permissions.all(),
         )
 
     def test_mutating_api_request_is_logged_without_request_body(self):

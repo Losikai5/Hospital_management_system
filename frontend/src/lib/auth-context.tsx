@@ -8,8 +8,9 @@ export type AuthUser = {
   email: string;
   first_name: string;
   last_name: string;
-  role: string;
+  roles: string[];
   permissions: string[];
+  is_superuser?: boolean;
   phone: string;
   date_of_birth: string | null;
   gender: string;
@@ -29,6 +30,8 @@ type AuthContextValue = {
   refreshUser: () => Promise<AuthUser | null>;
   updateProfile: (updates: Partial<AuthUser>) => Promise<AuthUser>;
   hasPermission: (permission: string) => boolean;
+  hasRole: (role: string) => boolean;
+  hasAnyRole: (roles: string[]) => boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -39,8 +42,9 @@ function normalizeUser(user: Partial<AuthUser>): AuthUser {
     email: user.email ?? "",
     first_name: user.first_name ?? "",
     last_name: user.last_name ?? "",
-    role: user.role ?? "",
+    roles: user.roles ?? [],
     permissions: user.permissions ?? [],
+    is_superuser: user.is_superuser ?? false,
     phone: user.phone ?? "",
     date_of_birth: user.date_of_birth ?? null,
     gender: user.gender ?? "",
@@ -123,7 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     refreshUser,
     updateProfile,
-    hasPermission: (permission) => user?.permissions.includes(permission) ?? false,
+    hasPermission: (permission) =>
+      (user?.is_superuser ?? false) ||
+      (user?.roles.includes("ADMIN") ?? false) ||
+      (user?.permissions.includes(permission) ?? false),
+    hasRole: (role) => user?.roles.includes(role) ?? false,
+    hasAnyRole: (roles) => roles.some((role) => user?.roles.includes(role) ?? false),
   }), [user, isLoading, login, register, logout, refreshUser, updateProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

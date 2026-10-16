@@ -17,7 +17,7 @@ import type { Appointment } from "@/lib/types";
 const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"] as const;
 
 export default function AppointmentsPage() {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, hasRole } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +60,7 @@ export default function AppointmentsPage() {
   const canComplete = hasPermission("can_complete_appointments");
   const canCancel = hasPermission("can_cancel_appointments");
   const canBook = hasPermission("can_create_appointments");
-  const isDoctor = user.role === "DOCTOR";
+  const isDoctor = hasRole("DOCTOR");
   const heading = isDoctor
     ? { title: "My calendar", description: "Confirm or decline the appointments patients have booked with you." }
     : { title: "Appointments", description: "Manage scheduled visits across the hospital." };

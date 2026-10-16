@@ -86,7 +86,9 @@ const passwordSchema = z
 type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function ProfilePage() {
-  const { user, updateProfile, refreshUser } = useAuth();
+  const { user, updateProfile, refreshUser, hasRole } = useAuth();
+  const isPatientRole = hasRole("PATIENT");
+  const isDoctorRole = hasRole("DOCTOR");
   const [, setPatient] = useState<PatientProfile | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPatient, setSavingPatient] = useState(false);
@@ -114,7 +116,7 @@ export default function ProfilePage() {
   const passwordForm = useForm<PasswordForm>({ resolver: zodResolver(passwordSchema) });
 
   const loadPatient = useCallback(async () => {
-    if (user?.role !== "PATIENT") return;
+    if (!isPatientRole) return;
     try {
       const data = await apiRequest<PatientProfile>("/patients/profile/", { authenticated: true });
       setPatient(data);
@@ -128,10 +130,10 @@ export default function ProfilePage() {
     } catch {
       // patient profile endpoint may not be available for all accounts
     }
-  }, [user?.role, patientForm]);
+  }, [isPatientRole, patientForm]);
 
   const loadDoctor = useCallback(async () => {
-    if (user?.role !== "DOCTOR") return;
+    if (!isDoctorRole) return;
     try {
       const data = await apiRequest<DoctorProfileResponse>("/doctors/profile/", { authenticated: true });
       setHasDoctorProfile(true);
@@ -147,7 +149,7 @@ export default function ProfilePage() {
       // 404 = no DoctorProfile yet → create mode
       setHasDoctorProfile(false);
     }
-  }, [user?.role, doctorForm]);
+  }, [isDoctorRole, doctorForm]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -245,7 +247,7 @@ export default function ProfilePage() {
           </h2>
           <p className="text-sm text-stone-500 dark:text-stone-400">{user.email}</p>
           <span className="mt-1.5 inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-            {user.role}
+            {user.roles.join(", ")}
           </span>
         </div>
       </div>
@@ -293,7 +295,7 @@ export default function ProfilePage() {
           </Button>
         </form>
 
-        {user.role === "PATIENT" && (
+        {isPatientRole && (
           <form onSubmit={patientForm.handleSubmit(onSavePatient)} className="space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
               <HeartCheckIcon className="size-4 text-emerald-600 dark:text-emerald-400" /> Health information
@@ -331,7 +333,7 @@ export default function ProfilePage() {
           </form>
         )}
 
-        {user.role === "DOCTOR" && (
+        {isDoctorRole && (
           <form onSubmit={doctorForm.handleSubmit(onSaveDoctor)} className="space-y-4 rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
               <Doctor01Icon className="size-4 text-emerald-600 dark:text-emerald-400" /> Professional information

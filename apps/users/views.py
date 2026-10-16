@@ -19,9 +19,15 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.utils.module_loading import import_string
 from .emails import send_staff_invitation_email, send_password_reset_email
-from .service import StaffInvitationAcceptanceError, create_staff_invitation,accept_staff_invitation
+from .service import (
+    StaffInvitationAcceptanceError,
+    apply_role_permissions_to_users,
+    create_staff_invitation,
+    accept_staff_invitation,
+)
 from apps.core.permissions import HasCustomPermission
 from apps.core.schemas import ErrorResponse, MessageResponse
+from apps.utilities.mixin import PaginationMixin
 from .models import CustomUser, Permission, Role
 from .serializers import (
     ChangePasswordSerializer,
@@ -33,6 +39,8 @@ from .serializers import (
     RolePermissionUpdateSerializer,
     StaffInvitationAcceptSerializer,
     StaffInvitationSerializer,
+    StaffUserSerializer,
+    StaffUserUpdateSerializer,
     UserProfileSerializer,
     UserRegistrationSerializer,
 )
@@ -88,10 +96,13 @@ class RegisterView(APIView):
                     {
                         "id": drf_serializers.IntegerField(),
                         "email": drf_serializers.EmailField(),
-                        "role": drf_serializers.CharField(),
+                        "roles": drf_serializers.ListField(
+                            child=drf_serializers.CharField(),
+                        ),
                         "permissions": drf_serializers.ListField(
                             child=drf_serializers.CharField(),
                         ),
+                        "is_superuser": drf_serializers.BooleanField(),
                     },
                 ),
             },
@@ -139,12 +150,9 @@ class LoginView(APIView):
             'user': {
                 'id': user.id,
                 'email': user.email,
-                'role': user.role_code,
-                'permissions': list(
-                    user.role.permissions.filter(is_active=True)
-                    .order_by('code')
-                    .values_list('code', flat=True)
-                ),
+                'roles': user.role_codes,
+                'permissions': user.get_permission_codes(),
+                'is_superuser': user.is_superuser,
             }
         }, status=status.HTTP_200_OK)
 
@@ -338,7 +346,9 @@ class PasswordResetConfirmView(APIView):
                     {
                         "id": drf_serializers.IntegerField(),
                         "email": drf_serializers.EmailField(),
-                        "role": drf_serializers.CharField(),
+                        "roles": drf_serializers.ListField(
+                            child=drf_serializers.CharField(),
+                        ),
                         "invited_by": drf_serializers.EmailField(),
                         "expires_at": drf_serializers.DateTimeField(),
                     },
@@ -362,7 +372,8 @@ class StaffInvitationView(APIView):
 
         invitation, token = create_staff_invitation(
             email=serializer.validated_data["email"],
-            role=serializer.validated_data["role"],
+            roles=serializer.validated_data["roles"],
+            permissions=serializer.validated_data.get("permissions"),
             invited_by=request.user,
         )
 
@@ -377,7 +388,7 @@ class StaffInvitationView(APIView):
                 "invitation": {
                     "id": invitation.id,
                     "email": invitation.user.email,
-                    "role": invitation.user.role.code,
+                    "roles": invitation.user.role_codes,
                     "invited_by": invitation.invited_by.email,
                     "expires_at": invitation.expires_at,
                 },
@@ -399,7 +410,9 @@ class StaffInvitationView(APIView):
                     {
                         "id": drf_serializers.IntegerField(),
                         "email": drf_serializers.EmailField(),
-                        "role": drf_serializers.CharField(),
+                        "roles": drf_serializers.ListField(
+                            child=drf_serializers.CharField(),
+                        ),
                         "is_active": drf_serializers.BooleanField(),
                         "is_verified": drf_serializers.BooleanField(),
                     },
@@ -434,7 +447,7 @@ class StaffInvitationAcceptView(APIView):
                 "user": {
                     "id": user.id,
                     "email": user.email,
-                    "role": user.role.code,
+                    "roles": user.role_codes,
                     "is_active": user.is_active,
                     "is_verified": user.is_verified,
                 },
@@ -514,7 +527,7 @@ class RoleDetailView(APIView):
         role = self.get_role(code)
         if role.is_system:
             return Response({"detail": "System roles cannot be deleted."}, status=status.HTTP_400_BAD_REQUEST)
-        if role.users.exists():
+        if role.user_roles.exists():
             return Response({"detail": "Cannot delete a role that is currently assigned to users."}, status=status.HTTP_400_BAD_REQUEST)
         role.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -555,3 +568,96 @@ class PermissionListView(APIView):
     def get(self, request):
         permissions = Permission.objects.filter(is_active=True).order_by("code")
         return Response(PermissionSerializer(permissions, many=True).data)
+
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Staff Management"],
+        summary="List staff users",
+        responses={200: StaffUserSerializer(many=True)},
+    ),
+)
+class StaffUserListView(PaginationMixin, APIView):
+    permission_classes = [HasCustomPermission]
+    required_permissions_by_method = {
+        "GET": ("can_view_users",),
+    }
+
+    def get_queryset(self):
+        return (
+            CustomUser.objects
+            .prefetch_related("roles", "permissions")
+            .order_by("-created_at")
+        )
+
+    def get(self, request):
+        return self.paginate_list(
+            request,
+            self.get_queryset(),
+            StaffUserSerializer,
+            context={"request": request},
+        )
+
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Staff Management"],
+        summary="Get a staff user",
+        responses={200: StaffUserSerializer},
+    ),
+    patch=extend_schema(
+        tags=["Staff Management"],
+        summary="Update a staff user's roles and permissions",
+        request=StaffUserUpdateSerializer,
+        responses={200: StaffUserSerializer},
+    ),
+)
+class StaffUserDetailView(APIView):
+    permission_classes = [HasCustomPermission]
+    required_permissions_by_method = {
+        "GET": ("can_view_users",),
+        "PATCH": ("can_edit_users", "can_assign_roles"),
+    }
+
+    def get_object(self, pk):
+        return get_object_or_404(
+            CustomUser.objects.prefetch_related("roles", "permissions"),
+            pk=pk,
+        )
+
+    def get(self, request, pk):
+        return Response(StaffUserSerializer(self.get_object(pk)).data)
+
+    def patch(self, request, pk):
+        user = self.get_object(pk)
+        serializer = StaffUserUpdateSerializer(
+            user,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(StaffUserSerializer(user).data)
+
+
+@extend_schema(
+    tags=["Role Management"],
+    summary="Apply a role's permissions to all its users",
+    request=None,
+    responses={200: RoleDetailSerializer, 400: ErrorResponse},
+)
+class RolePermissionSyncView(APIView):
+    permission_classes = [HasCustomPermission]
+    required_permission = "can_assign_permissions"
+
+    def post(self, request, code):
+        role = get_object_or_404(Role, code=code.upper())
+
+        remove_stale = request.data.get("remove_stale")
+        if remove_stale is None:
+            remove_stale = request.query_params.get("remove_stale")
+        remove_stale = str(remove_stale).lower() in {"1", "true", "yes"}
+
+        apply_role_permissions_to_users(role, remove_stale=remove_stale)
+
+        return Response(RoleDetailSerializer(role).data)

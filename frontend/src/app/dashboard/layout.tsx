@@ -69,7 +69,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <div className="truncate text-sm font-medium text-white">
               {user.first_name || user.email}
             </div>
-            <div className="truncate text-xs text-white/50">{user.role}</div>
+            <div className="truncate text-xs text-white/50">{user.roles.join(", ")}</div>
           </div>
         </Link>
         <button

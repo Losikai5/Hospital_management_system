@@ -62,13 +62,15 @@ class HospitalWorkflowAcceptanceTests(APITestCase):
         self.patient_user = CustomUser.objects.create_user(
             email="acceptance-patient@example.com",
             password="SafePassword!123",
-            role=patient_role,
+            roles=[patient_role],
+            permissions=patient_role.permissions.all(),
         )
         self.patient = PatientProfile.objects.create(user=self.patient_user)
         self.doctor_user = CustomUser.objects.create_user(
             email="acceptance-doctor@example.com",
             password="SafePassword!123",
-            role=doctor_role,
+            roles=[doctor_role],
+            permissions=doctor_role.permissions.all(),
         )
         self.doctor = DoctorProfile.objects.create(
             user=self.doctor_user,
@@ -78,17 +80,20 @@ class HospitalWorkflowAcceptanceTests(APITestCase):
         self.pharmacist_user = CustomUser.objects.create_user(
             email="acceptance-pharmacist@example.com",
             password="SafePassword!123",
-            role=pharmacist_role,
+            roles=[pharmacist_role],
+            permissions=pharmacist_role.permissions.all(),
         )
         self.billing_user = CustomUser.objects.create_user(
             email="acceptance-billing@example.com",
             password="SafePassword!123",
-            role=billing_role,
+            roles=[billing_role],
+            permissions=billing_role.permissions.all(),
         )
         self.auditor_user = CustomUser.objects.create_user(
             email="acceptance-auditor@example.com",
             password="SafePassword!123",
-            role=auditor_role,
+            roles=[auditor_role],
+            permissions=auditor_role.permissions.all(),
         )
         self.appointment_date = timezone.localdate() + timedelta(days=7)
         DoctorSchedule.objects.create(

@@ -74,7 +74,8 @@ class PatientCreateSerializer(serializers.Serializer):
             user = CustomUser.objects.create_user(
                 email=validated_data["email"],
                 password=secrets.token_urlsafe(16),
-                role=patient_role,
+                roles=[patient_role],
+                permissions=patient_role.permissions.filter(is_active=True),
                 first_name=validated_data["first_name"],
                 last_name=validated_data["last_name"],
                 phone=validated_data.get("phone") or None,

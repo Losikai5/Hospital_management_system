@@ -86,9 +86,9 @@ class AppointmentListView(PaginationMixin, APIView):
 
         if user.has_permission("can_view_all_appointments"):
             visible_queryset = queryset
-        elif user.role_code == "DOCTOR":
+        elif user.has_role("DOCTOR"):
             visible_queryset = queryset.filter(doctor__user=user)
-        elif user.role_code == "PATIENT":
+        elif user.has_role("PATIENT"):
             visible_queryset = queryset.filter(patient__user=user)
         else:
             return Appointment.objects.none()

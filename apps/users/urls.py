@@ -11,9 +11,12 @@ from .views import (
     PermissionListView,
     RoleDetailView,
     RoleListCreateView,
+    RolePermissionSyncView,
     RolePermissionUpdateView,
     StaffInvitationAcceptView,
     StaffInvitationView,
+    StaffUserDetailView,
+    StaffUserListView,
 )
 
 urlpatterns = [
@@ -33,7 +36,10 @@ staff_urlpatterns = [
     path('invitations/', StaffInvitationView.as_view(), name='staff-invitation-create'),
     path('invitations/accept/', StaffInvitationAcceptView.as_view(), name='staff-invitation-accept'),
     path('permissions/', PermissionListView.as_view(), name='permission-list'),
+    path('users/', StaffUserListView.as_view(), name='staff-user-list'),
+    path('users/<int:pk>/', StaffUserDetailView.as_view(), name='staff-user-detail'),
     path('roles/', RoleListCreateView.as_view(), name='role-list-create'),
     path('roles/<str:code>/', RoleDetailView.as_view(), name='role-detail'),
     path('roles/<str:code>/permissions/', RolePermissionUpdateView.as_view(), name='role-permissions'),
+    path('roles/<str:code>/sync/', RolePermissionSyncView.as_view(), name='role-permissions-sync'),
 ]

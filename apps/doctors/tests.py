@@ -50,7 +50,8 @@ class DoctorApiTests(APITestCase):
         self.doctor_user = CustomUser.objects.create_user(
             email="doctor@example.com",
             password="SafePassword!123",
-            role=self.doctor_role,
+            roles=[self.doctor_role],
+            permissions=self.doctor_role.permissions.all(),
             first_name="Grace",
             last_name="Nambi",
         )
@@ -62,7 +63,8 @@ class DoctorApiTests(APITestCase):
         self.other_doctor_user = CustomUser.objects.create_user(
             email="other-doctor@example.com",
             password="SafePassword!123",
-            role=self.doctor_role,
+            roles=[self.doctor_role],
+            permissions=self.doctor_role.permissions.all(),
         )
         self.other_doctor = DoctorProfile.objects.create(
             user=self.other_doctor_user,
@@ -72,12 +74,14 @@ class DoctorApiTests(APITestCase):
         self.manager_user = CustomUser.objects.create_user(
             email="manager@example.com",
             password="SafePassword!123",
-            role=self.manager_role,
+            roles=[self.manager_role],
+            permissions=self.manager_role.permissions.all(),
         )
         self.viewer_user = CustomUser.objects.create_user(
             email="viewer@example.com",
             password="SafePassword!123",
-            role=self.viewer_role,
+            roles=[self.viewer_role],
+            permissions=self.viewer_role.permissions.all(),
         )
 
     def schedule_payload(self, **overrides):

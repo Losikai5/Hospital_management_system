@@ -5,7 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { UserGroupIcon, MailSend01Icon, PlusSignIcon, PencilEdit01Icon, Delete02Icon } from "hugeicons-react";
+import { UserGroupIcon, MailSend01Icon, PlusSignIcon, PencilEdit01Icon, Delete02Icon, Refresh01Icon } from "hugeicons-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,13 +14,115 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import type { PermissionInfo, RoleDetail } from "@/lib/types";
+import type { PermissionInfo, RoleDetail, StaffUser } from "@/lib/types";
 
-type Tab = "invitations" | "roles";
+type Tab = "invitations" | "roles" | "people";
+
+function toggleValue(values: string[], value: string) {
+  return values.includes(value)
+    ? values.filter((item) => item !== value)
+    : [...values, value];
+}
+
+function RoleChecklist({
+  roles,
+  selected,
+  onToggle,
+}: {
+  roles: RoleDetail[];
+  selected: string[];
+  onToggle: (code: string) => void;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 max-h-[300px] overflow-y-auto p-0.5">
+      {roles.map((role) => {
+        const checked = selected.includes(role.code);
+        return (
+          <label
+            key={role.code}
+            className={cn(
+              "cursor-pointer rounded-lg border p-3 text-sm transition-colors",
+              checked
+                ? "border-emerald-500 bg-emerald-50/60 dark:border-emerald-600 dark:bg-emerald-900/20"
+                : "border-stone-200 hover:border-emerald-200 dark:border-stone-700 dark:hover:border-emerald-900"
+            )}
+          >
+            <input
+              type="checkbox"
+              value={role.code}
+              checked={checked}
+              onChange={() => onToggle(role.code)}
+              className="sr-only"
+            />
+            <div className="font-semibold text-stone-900 dark:text-stone-50 flex items-center justify-between">
+              <span>{role.name}</span>
+              <span className="text-[10px] font-mono bg-stone-100 text-stone-700 px-1.5 py-0.2 rounded dark:bg-stone-800 dark:text-stone-300">
+                {role.code}
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-stone-500 dark:text-stone-400 line-clamp-2">
+              {role.description || "No description provided."}
+            </div>
+          </label>
+        );
+      })}
+      {roles.length === 0 && (
+        <p className="text-xs text-stone-500 text-center py-4 col-span-full">
+          No roles available.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PermissionChecklist({
+  permissions,
+  selected,
+  onToggle,
+}: {
+  permissions: PermissionInfo[];
+  selected: string[];
+  onToggle: (code: string) => void;
+}) {
+  return (
+    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-stone-200 p-3 space-y-2 dark:border-stone-700 bg-stone-50/50 dark:bg-stone-900/50">
+      {permissions.map((perm) => {
+        const isChecked = selected.includes(perm.code);
+        return (
+          <label
+            key={perm.code}
+            className="flex items-start gap-2.5 rounded-md p-2 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer transition-colors"
+          >
+            <input
+              type="checkbox"
+              checked={isChecked}
+              onChange={() => onToggle(perm.code)}
+              className="mt-1 accent-emerald-600 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500 size-4"
+            />
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-stone-900 dark:text-stone-50">
+                {perm.name}
+              </span>
+              <span className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight mt-0.5">
+                {perm.description || perm.code}
+              </span>
+            </div>
+          </label>
+        );
+      })}
+      {permissions.length === 0 && (
+        <p className="text-xs text-stone-500 text-center py-4">
+          No permissions available.
+        </p>
+      )}
+    </div>
+  );
+}
 
 const inviteSchema = z.object({
   email: z.string().email("Enter a valid email address"),
-  role: z.string().min(1, "Select a role"),
+  roles: z.array(z.string()).min(1, "Select at least one role"),
+  permissions: z.array(z.string()),
 });
 
 type InviteForm = z.infer<typeof inviteSchema>;
@@ -41,26 +143,53 @@ const createRoleSchema = z.object({
 
 type CreateRoleForm = z.infer<typeof createRoleSchema>;
 
+const userSchema = z.object({
+  roles: z.array(z.string()).min(1, "Select at least one role"),
+  permissions: z.array(z.string()),
+  apply_role_defaults: z.boolean(),
+  is_active: z.boolean(),
+});
+
+type UserForm = z.infer<typeof userSchema>;
+
 export default function StaffPage() {
   const { user, hasPermission } = useAuth();
   const [tab, setTab] = useState<Tab>("invitations");
-  
+
   // Data lists
   const [roles, setRoles] = useState<RoleDetail[]>([]);
   const [permissions, setPermissions] = useState<PermissionInfo[]>([]);
-  
+  const [users, setUsers] = useState<StaffUser[]>([]);
+
   // States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [creatingRole, setCreatingRole] = useState(false);
+  const [syncingRole, setSyncingRole] = useState<string | null>(null);
+  const [savingUser, setSavingUser] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleDetail | null>(null);
+  const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
   const [sent, setSent] = useState<string[]>([]);
+
+  // Permission gates
+  const canViewRoles = hasPermission("can_view_roles");
+  const canViewPermissions = hasPermission("can_view_permissions");
+  const canInvite =
+    hasPermission("can_create_users") &&
+    hasPermission("can_assign_roles") &&
+    canViewRoles;
+  const canManageRoles = canViewRoles && canViewPermissions;
+  const canViewUsers = hasPermission("can_view_users");
+  const canEditUsers =
+    hasPermission("can_edit_users") && hasPermission("can_assign_roles");
+  const canSyncRole = hasPermission("can_assign_permissions");
+  const canAccess = canInvite || canManageRoles || canViewUsers;
 
   // Forms
   const inviteForm = useForm<InviteForm>({
     resolver: zodResolver(inviteSchema),
-    defaultValues: { email: "", role: "" },
+    defaultValues: { email: "", roles: [], permissions: [] },
   });
 
   const roleForm = useForm<CreateRoleForm>({
@@ -68,30 +197,44 @@ export default function StaffPage() {
     defaultValues: { code: "", name: "", description: "", permissions: [] },
   });
 
+  const userForm = useForm<UserForm>({
+    resolver: zodResolver(userSchema),
+    defaultValues: {
+      roles: [],
+      permissions: [],
+      apply_role_defaults: false,
+      is_active: true,
+    },
+  });
+
+  const selectedInviteRoles = useWatch({ control: inviteForm.control, name: "roles" }) ?? [];
+  const selectedInvitePermissions = useWatch({ control: inviteForm.control, name: "permissions" }) ?? [];
   const selectedRolePermissions = useWatch({ control: roleForm.control, name: "permissions" }) ?? [];
-  const canInvite =
-    hasPermission("can_create_users") &&
-    hasPermission("can_assign_roles") &&
-    hasPermission("can_view_roles");
-  const canManageRoles =
-    hasPermission("can_view_roles") &&
-    hasPermission("can_view_permissions");
-  const canAccess = canInvite || canManageRoles;
-  const activeTab: Tab = canInvite ? tab : "roles";
+  const selectedUserRoles = useWatch({ control: userForm.control, name: "roles" }) ?? [];
+  const selectedUserPermissions = useWatch({ control: userForm.control, name: "permissions" }) ?? [];
+  const applyRoleDefaults = useWatch({ control: userForm.control, name: "apply_role_defaults" }) ?? false;
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [fetchedRoles, fetchedPermissions] = await Promise.all([
-        apiRequest<RoleDetail[]>("/staff/roles/"),
-        apiRequest<PermissionInfo[]>("/staff/permissions/"),
+      const [fetchedRoles, fetchedPermissions, fetchedUsers] = await Promise.all([
+        canViewRoles
+          ? apiRequest<RoleDetail[]>("/staff/roles/")
+          : Promise.resolve<RoleDetail[]>([]),
+        canViewPermissions
+          ? apiRequest<PermissionInfo[]>("/staff/permissions/")
+          : Promise.resolve<PermissionInfo[]>([]),
+        canViewUsers
+          ? apiRequest<StaffUser[]>("/staff/users/")
+          : Promise.resolve<StaffUser[]>([]),
       ]);
       setRoles(fetchedRoles);
       setPermissions(fetchedPermissions);
+      setUsers(fetchedUsers);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load roles and permissions"
+        err instanceof Error ? err.message : "Failed to load staff data"
       );
     } finally {
       setLoading(false);
@@ -102,21 +245,38 @@ export default function StaffPage() {
     if (!canAccess) return;
     const timer = window.setTimeout(() => { void loadData(); }, 0);
     return () => window.clearTimeout(timer);
-  }, [canAccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAccess, canViewRoles, canViewPermissions, canViewUsers]);
 
   if (!user || !canAccess) return null;
+
+  const availableTabs = [
+    canInvite && { key: "invitations" as Tab, label: "Invitations" },
+    canManageRoles && { key: "roles" as Tab, label: "Roles & Permissions" },
+    canViewUsers && { key: "people" as Tab, label: "Users" },
+  ].filter(Boolean) as { key: Tab; label: string }[];
+  const activeTab: Tab = availableTabs.some((item) => item.key === tab)
+    ? tab
+    : availableTabs[0].key;
 
   const onInviteSubmit = async (data: InviteForm) => {
     setSending(true);
     try {
+      const body: { email: string; roles: string[]; permissions?: string[] } = {
+        email: data.email,
+        roles: data.roles,
+      };
+      if (data.permissions.length > 0) {
+        body.permissions = data.permissions;
+      }
       await apiRequest("/staff/invitations/", {
         method: "POST",
-        body: { email: data.email, role: data.role },
+        body,
         authenticated: true,
       });
       toast.success(`Invitation sent to ${data.email}`);
       setSent((prev) => [data.email, ...prev]);
-      inviteForm.reset();
+      inviteForm.reset({ email: "", roles: [], permissions: [] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send invitation");
     } finally {
@@ -137,13 +297,11 @@ export default function StaffPage() {
         authenticated: true,
       });
       toast.success(`Role "${newRole.name}" created successfully.`);
-      
-      // Update local state with the new role
+
       setRoles((prev) =>
         [...prev, newRole].sort((a, b) => a.code.localeCompare(b.code))
       );
-      
-      // Reset role creation form
+
       roleForm.reset({ code: "", name: "", description: "", permissions: [] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create role");
@@ -156,7 +314,6 @@ export default function StaffPage() {
     if (editingRole) {
       setCreatingRole(true);
       try {
-        let updatedRole = editingRole;
         if (!editingRole.is_system) {
           await apiRequest(`/staff/roles/${editingRole.code}/`, {
             method: "PATCH",
@@ -164,13 +321,13 @@ export default function StaffPage() {
             authenticated: true,
           });
         }
-        
-        updatedRole = await apiRequest<RoleDetail>(`/staff/roles/${editingRole.code}/permissions/`, {
+
+        const updatedRole = await apiRequest<RoleDetail>(`/staff/roles/${editingRole.code}/permissions/`, {
           method: "PUT",
           body: { permissions: data.permissions },
           authenticated: true,
         });
-        
+
         toast.success(`Role "${updatedRole.name}" updated successfully.`);
         setRoles((prev) =>
           prev.map((r) => (r.code === editingRole.code ? updatedRole : r))
@@ -187,6 +344,44 @@ export default function StaffPage() {
     }
   };
 
+  const onUserSubmit = async (data: UserForm) => {
+    if (!editingUser) return;
+    setSavingUser(true);
+    try {
+      const body: {
+        roles: string[];
+        is_active: boolean;
+        apply_role_defaults: boolean;
+        permissions?: string[];
+      } = {
+        roles: data.roles,
+        is_active: data.is_active,
+        apply_role_defaults: data.apply_role_defaults,
+      };
+      if (!data.apply_role_defaults) {
+        body.permissions = data.permissions;
+      }
+      const updated = await apiRequest<StaffUser>(`/staff/users/${editingUser.id}/`, {
+        method: "PATCH",
+        body,
+        authenticated: true,
+      });
+      toast.success(`Updated access for ${updated.email}.`);
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      setEditingUser(updated);
+      userForm.reset({
+        roles: updated.roles,
+        permissions: updated.permissions,
+        apply_role_defaults: false,
+        is_active: updated.is_active,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update user");
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
   const handleEditRole = (role: RoleDetail) => {
     setEditingRole(role);
     roleForm.reset({
@@ -200,6 +395,26 @@ export default function StaffPage() {
   const handleCancelEdit = () => {
     setEditingRole(null);
     roleForm.reset({ code: "", name: "", description: "", permissions: [] });
+  };
+
+  const handleEditUser = (staffUser: StaffUser) => {
+    setEditingUser(staffUser);
+    userForm.reset({
+      roles: staffUser.roles,
+      permissions: staffUser.permissions,
+      apply_role_defaults: false,
+      is_active: staffUser.is_active,
+    });
+  };
+
+  const handleCancelEditUser = () => {
+    setEditingUser(null);
+    userForm.reset({
+      roles: [],
+      permissions: [],
+      apply_role_defaults: false,
+      is_active: true,
+    });
   };
 
   const handleDeleteRole = async (roleCode: string) => {
@@ -222,16 +437,30 @@ export default function StaffPage() {
     }
   };
 
-  const handlePermissionToggle = (permCode: string) => {
-    const current = roleForm.getValues("permissions") || [];
-    if (current.includes(permCode)) {
-      roleForm.setValue(
-        "permissions",
-        current.filter((c) => c !== permCode)
-      );
-    } else {
-      roleForm.setValue("permissions", [...current, permCode]);
+  const handleSyncRole = async (roleCode: string) => {
+    if (!confirm(`Apply the current permissions of "${roleCode}" to every user holding it?`)) {
+      return;
     }
+    setSyncingRole(roleCode);
+    try {
+      await apiRequest(`/staff/roles/${roleCode}/sync/`, {
+        method: "POST",
+        authenticated: true,
+      });
+      toast.success(`Applied "${roleCode}" permissions to its users.`);
+      await loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sync role permissions");
+    } finally {
+      setSyncingRole(null);
+    }
+  };
+
+  const handleRolePermissionToggle = (permCode: string) => {
+    roleForm.setValue(
+      "permissions",
+      toggleValue(roleForm.getValues("permissions") || [], permCode)
+    );
   };
 
   if (loading) {
@@ -261,15 +490,10 @@ export default function StaffPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Staff" description="Invite team members and manage platform roles." />
+      <PageHeader title="Staff" description="Invite team members and manage roles, permissions and access." />
 
       <div className="flex gap-2">
-        {([
-          { key: "invitations", label: "Invitations" },
-          { key: "roles", label: "Roles & Permissions" },
-        ] as { key: Tab; label: string }[]).filter((item) =>
-          item.key === "invitations" ? canInvite : canManageRoles
-        ).map((t) => (
+        {availableTabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -285,7 +509,7 @@ export default function StaffPage() {
         ))}
       </div>
 
-      {activeTab === "invitations" ? (
+      {activeTab === "invitations" && (
         <div className="grid gap-6 lg:grid-cols-2">
           <form
             onSubmit={inviteForm.handleSubmit(onInviteSubmit)}
@@ -294,7 +518,7 @@ export default function StaffPage() {
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
               <MailSend01Icon className="size-4 text-emerald-600 dark:text-emerald-400" /> New invitation
             </h3>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -312,37 +536,43 @@ export default function StaffPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Select Role</Label>
-              <div className="grid gap-2 sm:grid-cols-2 max-h-[300px] overflow-y-auto p-0.5">
-                {roles.map((role) => (
-                  <label
-                    key={role.code}
-                    className="cursor-pointer rounded-lg border border-stone-200 p-3 text-sm transition-colors hover:border-emerald-200 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/60 dark:border-stone-700 dark:hover:border-emerald-900 dark:has-[:checked]:border-emerald-600 dark:has-[:checked]:bg-emerald-900/20"
-                  >
-                    <input
-                      type="radio"
-                      value={role.code}
-                      className="sr-only"
-                      {...inviteForm.register("role")}
-                    />
-                    <div className="font-semibold text-stone-900 dark:text-stone-50 flex items-center justify-between">
-                      <span>{role.name}</span>
-                      <span className="text-[10px] font-mono bg-stone-100 text-stone-700 px-1.5 py-0.2 rounded dark:bg-stone-800 dark:text-stone-300">
-                        {role.code}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-xs text-stone-500 dark:text-stone-400 line-clamp-2">
-                      {role.description || "No description provided."}
-                    </div>
-                  </label>
-                ))}
-              </div>
-              {inviteForm.formState.errors.role && (
+              <Label>Roles</Label>
+              <RoleChecklist
+                roles={roles}
+                selected={selectedInviteRoles}
+                onToggle={(code) =>
+                  inviteForm.setValue(
+                    "roles",
+                    toggleValue(inviteForm.getValues("roles") || [], code),
+                    { shouldValidate: true }
+                  )
+                }
+              />
+              {inviteForm.formState.errors.roles && (
                 <p className="text-xs text-destructive">
-                  {inviteForm.formState.errors.role.message}
+                  {inviteForm.formState.errors.roles.message}
                 </p>
               )}
             </div>
+
+            {canViewPermissions && (
+              <div className="space-y-2">
+                <Label>Permissions</Label>
+                <PermissionChecklist
+                  permissions={permissions}
+                  selected={selectedInvitePermissions}
+                  onToggle={(code) =>
+                    inviteForm.setValue(
+                      "permissions",
+                      toggleValue(inviteForm.getValues("permissions") || [], code)
+                    )
+                  }
+                />
+                <p className="text-xs text-stone-400 dark:text-stone-500">
+                  Leave all unchecked to grant the combined default permissions of the selected roles.
+                </p>
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={sending}>
               {sending ? "Sending..." : "Send invitation"}
@@ -379,7 +609,169 @@ export default function StaffPage() {
             )}
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === "people" && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Edit user access */}
+          <div className="rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900">
+            {editingUser ? (
+              <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-4">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50">
+                  <PencilEdit01Icon className="size-4 text-emerald-600 dark:text-emerald-400" /> Access for {editingUser.email}
+                </h3>
+
+                <div className="space-y-2">
+                  <Label>Roles</Label>
+                  <RoleChecklist
+                    roles={roles}
+                    selected={selectedUserRoles}
+                    onToggle={(code) =>
+                      userForm.setValue(
+                        "roles",
+                        toggleValue(userForm.getValues("roles") || [], code),
+                        { shouldValidate: true }
+                      )
+                    }
+                  />
+                  {userForm.formState.errors.roles && (
+                    <p className="text-xs text-destructive">
+                      {userForm.formState.errors.roles.message}
+                    </p>
+                  )}
+                </div>
+
+                {canEditUsers && (
+                  <label className="flex items-start gap-2.5 rounded-lg border border-stone-200 p-3 dark:border-stone-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={applyRoleDefaults}
+                      onChange={(event) =>
+                        userForm.setValue("apply_role_defaults", event.target.checked)
+                      }
+                      className="mt-0.5 accent-emerald-600 rounded border-stone-300 size-4"
+                    />
+                    <span className="text-xs text-stone-600 dark:text-stone-300">
+                      Reset permissions to the combined defaults of the selected roles.
+                    </span>
+                  </label>
+                )}
+
+                {canViewPermissions && !applyRoleDefaults && (
+                  <div className="space-y-2">
+                    <Label>Permissions</Label>
+                    <PermissionChecklist
+                      permissions={permissions}
+                      selected={selectedUserPermissions}
+                      onToggle={(code) =>
+                        userForm.setValue(
+                          "permissions",
+                          toggleValue(userForm.getValues("permissions") || [], code)
+                        )
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" disabled={savingUser || !canEditUsers}>
+                    {savingUser ? "Saving..." : "Save access"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleCancelEditUser}>
+                    Cancel
+                  </Button>
+                </div>
+                {!canEditUsers && (
+                  <p className="text-xs text-stone-400 dark:text-stone-500">
+                    You can view this user but do not have permission to change their access.
+                  </p>
+                )}
+              </form>
+            ) : (
+              <div className="flex h-full min-h-40 flex-col items-center justify-center gap-2 text-center">
+                <UserGroupIcon className="size-6 text-stone-300 dark:text-stone-600" />
+                <p className="text-sm text-stone-500 dark:text-stone-400">
+                  Select a user to view or edit their roles and permissions.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Users list */}
+          <div className="rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900 flex flex-col max-h-[700px]">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50 mb-4">
+              <UserGroupIcon className="size-4 text-emerald-600 dark:text-emerald-400" /> Users ({users.length})
+            </h3>
+            <div className="space-y-3 overflow-y-auto pr-1 flex-1">
+              {users.map((staffUser) => (
+                <div
+                  key={staffUser.id}
+                  className={cn(
+                    "rounded-[18px] border p-4 space-y-3 transition-colors",
+                    editingUser?.id === staffUser.id
+                      ? "border-action/40 bg-emerald-50/40 dark:border-emerald-800 dark:bg-emerald-900/10"
+                      : "border-hairline bg-parchment/60 hover:border-action/30 dark:border-stone-800 dark:bg-stone-950/30"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-stone-900 dark:text-stone-50">
+                        {(staffUser.first_name || staffUser.last_name)
+                          ? `${staffUser.first_name} ${staffUser.last_name}`.trim()
+                          : staffUser.email}
+                      </div>
+                      <div className="truncate text-xs text-stone-500 dark:text-stone-400">
+                        {staffUser.email}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge
+                        variant={staffUser.is_active ? "default" : "secondary"}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {staffUser.is_active ? "Active" : "Pending"}
+                      </Badge>
+                      <button
+                        onClick={() => handleEditUser(staffUser)}
+                        className="rounded p-1 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors cursor-pointer"
+                        title="Edit access"
+                      >
+                        <PencilEdit01Icon className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    {staffUser.roles.length > 0 ? (
+                      staffUser.roles.map((roleCode) => (
+                        <span
+                          key={roleCode}
+                          className="inline-block text-[10px] font-medium bg-emerald-50 text-emerald-700 rounded px-1.5 py-0.5 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        >
+                          {roleCode}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[10px] text-stone-400 italic">No roles</span>
+                    )}
+                  </div>
+
+                  <div className="text-[10px] text-stone-400 dark:text-stone-500">
+                    {staffUser.permissions.length} permission{staffUser.permissions.length === 1 ? "" : "s"}
+                  </div>
+                </div>
+              ))}
+              {users.length === 0 && (
+                <p className="text-sm text-stone-500 dark:text-stone-400">
+                  No users found.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "roles" && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Create / Edit Custom Role form */}
           <form
@@ -450,43 +842,15 @@ export default function StaffPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Permissions</Label>
-              <div className="max-h-[300px] overflow-y-auto rounded-lg border border-stone-200 p-3 space-y-2 dark:border-stone-700 bg-stone-50/50 dark:bg-stone-900/50">
-                {permissions.map((perm) => {
-                  const isChecked = selectedRolePermissions.includes(perm.code);
-                  return (
-                    <label
-                      key={perm.code}
-                      className="flex items-start gap-2.5 rounded-md p-2 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked || false}
-                        onChange={() => handlePermissionToggle(perm.code)}
-                        className="mt-1 accent-emerald-600 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500 size-4"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-stone-900 dark:text-stone-50">
-                          {perm.name}
-                        </span>
-                        <span className="text-[11px] text-stone-500 dark:text-stone-400 leading-tight mt-0.5">
-                          {perm.description || perm.code}
-                        </span>
-                      </div>
-                    </label>
-                  );
-                })}
-                {permissions.length === 0 && (
-                  <p className="text-xs text-stone-500 text-center py-4">
-                    No permissions available.
-                  </p>
-                )}
-              </div>
-              {roleForm.formState.errors.permissions && (
-                <p className="text-xs text-destructive">
-                  {roleForm.formState.errors.permissions.message}
-                </p>
-              )}
+              <Label>Default permissions</Label>
+              <PermissionChecklist
+                permissions={permissions}
+                selected={selectedRolePermissions}
+                onToggle={handleRolePermissionToggle}
+              />
+              <p className="text-xs text-stone-400 dark:text-stone-500">
+                Changing a role&apos;s defaults does not retroactively change existing users. Use &quot;Apply to users&quot; on a role to resync.
+              </p>
             </div>
 
             <div className="flex gap-2">
@@ -502,7 +866,7 @@ export default function StaffPage() {
           </form>
 
           {/* Existing Roles list */}
-          <div className="rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900 flex flex-col h-[700px]">
+          <div className="rounded-[18px] border border-hairline bg-canvas p-6 dark:border-stone-800 dark:bg-stone-900 flex flex-col max-h-[700px]">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900 dark:text-stone-50 mb-4">
               <UserGroupIcon className="size-4 text-emerald-600 dark:text-emerald-400" /> Existing Roles
             </h3>
@@ -533,7 +897,7 @@ export default function StaffPage() {
                       <span className="text-[10px] font-mono font-bold bg-stone-100 text-stone-700 px-2 py-0.5 rounded dark:bg-stone-800 dark:text-stone-300">
                         {role.code}
                       </span>
-                      
+
                       <button
                         onClick={() => handleEditRole(role)}
                         className="rounded p-1 hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors cursor-pointer"
@@ -541,6 +905,17 @@ export default function StaffPage() {
                       >
                         <PencilEdit01Icon className="size-4" />
                       </button>
+
+                      {canSyncRole && (
+                        <button
+                          onClick={() => handleSyncRole(role.code)}
+                          disabled={syncingRole === role.code}
+                          className="rounded p-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-stone-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Apply this role's permissions to its users"
+                        >
+                          <Refresh01Icon className={cn("size-4", syncingRole === role.code && "animate-spin")} />
+                        </button>
+                      )}
 
                       {!role.is_system && (
                         <button

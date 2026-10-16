@@ -43,7 +43,8 @@ class PatientApiTests(APITestCase):
         self.patient_user = CustomUser.objects.create_user(
             email="patient@example.com",
             password="SafePassword!123",
-            role=self.patient_role,
+            roles=[self.patient_role],
+            permissions=self.patient_role.permissions.all(),
         )
         self.patient = PatientProfile.objects.create(
             user=self.patient_user,
@@ -51,7 +52,8 @@ class PatientApiTests(APITestCase):
         self.staff_user = CustomUser.objects.create_user(
             email="staff@example.com",
             password="SafePassword!123",
-            role=self.staff_role,
+            roles=[self.staff_role],
+            permissions=self.staff_role.permissions.all(),
         )
 
     def test_patient_can_view_and_update_own_profile_only(self):
