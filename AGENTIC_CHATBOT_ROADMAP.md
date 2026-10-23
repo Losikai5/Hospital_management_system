@@ -267,3 +267,89 @@ Next session's exact starting point:
 Initial status: all days are planned. The source scan has been completed, but Day 1's capability agreement and baseline checks still need to be carried out.
 
 To continue in this chat: “Start Day 1 from AGENTIC_CHATBOT_ROADMAP.md.” In a later session: “Read the roadmap and daily record; continue the first unfinished day.”
+
+## MANAGEMENT system review: additions to the daily plan
+
+These requirements supplement the numbered days above. They do not mark any day complete. They come from a source review of MANAGEMENT; that system was not runtime-tested. Extend existing hospital services, permissions, audit, and notifications rather than creating duplicate frameworks.
+
+| Day | Additional implementation | Additional completion checks |
+| --- | --- | --- |
+| 4 — Authorization | Inventory permission codes and give each AI tool an explicit permission plus ownership/scope rules. Require an explicit hospital scope where applicable. Define role synchronization and direct-grant behavior. | Cross-hospital access, missing scope, and revoked permissions are denied appropriately. Staff status alone does not grant all permissions. |
+| 5 — Read tools | Build thin typed tool adapters around shared hospital service functions. Reuse the same rules as normal APIs. | API and chatbot access produce consistent authorization decisions for identical actors and records. |
+| 10 — Concurrency | Protect shared resources with database constraints and suitable transactional locks. A per-conversation lock does not protect one appointment from two different chats. | Two competing requests cannot double-book the same capacity or overwrite a completed action. |
+| 14 — Appointment action | Use the existing service transaction boundary. Recheck availability under appropriate concurrency controls. Queue notifications after commit. For delivery that must survive queue outages, persist an outbox event in the same transaction as the action. | A rolled-back change sends no success notification; two competing bookings are handled consistently; notification failure does not invalidate a committed booking. |
+| 16 — Recovery | Track action outcome separately from notification delivery. If using an outbox, give events stable IDs, retries, deduplication, and visible failed-delivery status. | A crash after commit and before queue publication can recover delivery without repeating the hospital action. |
+| 20 — Audit and records | Reuse hospital audit conventions. Record actor, target, action/request IDs, and outcome, including background jobs where request-local identity is unavailable. Define field exclusions and soft-deletion policy per record type. | Changes are traceable without unnecessary patient-data logging. Restore access, bulk deletion, related records, and retention have explicit behavior. |
+| 21 — Evaluations | Add cross-scope permission checks, revocation, API/tool parity, competing resource updates, notification failures, event replay, and soft-deleted-record access where applicable. | These scenarios have recorded results and are rerun after relevant changes. |
+| 25 onward — Reminders | If in scope, share reminder scheduling/delivery infrastructure while each domain supplies time, authorized recipients, and minimal message content. Handle timezones, rescheduling, cancellation, and duplicate delivery. | A rescheduled or cancelled appointment does not produce an obsolete reminder; retries do not send unintended duplicates. |
+| 25 onward — Integrations | If needed, use a registry of explicit event handlers. Authenticate sources, validate versioned payloads, authorize event types and hospital scope, and deduplicate stable external event IDs. | Unsupported/unauthorized events fail; replay does not repeat business effects; integrations cannot bypass domain authorization. |
+
+### Why these concepts matter
+
+A permission catalog gives the application a shared vocabulary of allowed actions. Shared services keep chatbot and API behavior consistent. Transactions protect changes that must succeed together. Resource locks and constraints handle competing requests. Commit callbacks keep notifications from announcing changes that were rolled back. A durable outbox additionally records delivery work so it can survive queue-publication failure.
+
+An event registry keeps new integrations out of one enormous conditional function. A reusable reminder interface shares delivery infrastructure without assuming every domain has the same recipients or schedule. Audit records make actions explainable after the conversation has ended.
+
+### Reference implementation locations in MANAGEMENT
+
+- Permission catalog: `backend/users/fixtures/permissions.json`.
+- Institution-scoped checks and role synchronization: `backend/users/models.py`, `backend/users/services.py`.
+- Transactions, row locking, and commit callbacks: `backend/billing/services/payment_service.py`.
+- Audit registration and exclusions: `backend/audit/audit_registry.py`.
+- Soft deletion and default managers: `backend/utilities/models.py`.
+- Reminder contracts: `backend/reminders/models.py`, `backend/reminders/services.py`.
+- Event registry and dispatch: `backend/integrations/services/event_registry.py`, `backend/integrations/services/event_router.py`.
+
+These paths are relative to MANAGEMENT, not the hospital repository.
+
+### What must not be copied blindly
+
+- MANAGEMENT broadly grants staff permission access. Hospital staff roles need explicit privileges.
+- Missing institution scope can collect permissions across institutions in the reviewed code. Missing scope must not silently mean unrestricted access.
+- Permission fixtures describe allowed actions; they do not enforce ownership themselves.
+- `transaction.on_commit()` alone does not guarantee eventual message delivery. The outbox is a proposed improvement, not a claim that MANAGEMENT already implements it.
+- Soft-delete managers do not automatically make bulk deletion, related-object behavior, restoration, or retention correct.
+- Workflow fixture definitions alone do not establish a working approval engine. The hospital confirmation flow still needs its own durable state and checks.
+
+### Example target flow
+
+```text
+User confirms a specific appointment-change proposal
+  → Check permission, record ownership, and hospital scope
+  → Call the shared appointment service
+  → Begin transaction and protect the contested resource
+  → Recheck availability and save the action
+  → Record action outcome and required outbox event
+  → Commit
+  → Return the committed result
+  → Deliver notification separately and track delivery status
+```
+
+A booking may be successfully changed while its notification is still pending. The chatbot must report those as separate facts.
+
+### Added release evidence
+
+Demonstrate that competing actions cannot corrupt appointment allocation, revoked permissions affect subsequent tool calls, and delayed notifications do not trigger repeated mutations. For enabled reminders or integrations, demonstrate cancellation/rescheduling and authenticated replay handling. Record this evidence in the corresponding daily implementation record.
+
+## Copy-and-paste prompt: turn this roadmap into a readable timetable
+
+Upload this entire file to ChatGPT, then paste this prompt:
+
+```text
+Read the attached roadmap and format it into a clear, beginner-friendly timetable. Include all numbered days, the MANAGEMENT additions, release gates, and any recorded progress.
+
+Produce a short phase overview, followed by a separate compact table for each phase with these columns:
+Day/session | Goal | Implementation tasks | Completion checks | Status
+
+Put longer explanations and checklists below the relevant table so it remains readable on a phone. Explain technical terms in plain language. Merge the MANAGEMENT requirements into the days they belong to, rather than leaving them in a separate appendix.
+
+Preserve every requirement, dependency, limitation, and acceptance check. A day is a flexible work session, not a deadline. Do not assign calendar dates or promise completion within a fixed number of days. Split large days into sessions such as 14A and 14B if needed, without dropping tasks or changing dependencies.
+
+Preserve the rule: finish the checks, record progress, then stop and wait until I request the next session. Use actual implementation records to set statuses; otherwise mark tasks Planned. Do not invent completed work or test results. Keep conditional features explicitly conditional and preserve the initial release exclusions.
+
+Include an end-of-session checklist for changed files, migrations/configuration, actual checks and results, unresolved issues, rollback notes, and the next starting point. Finish with the production release gates as a checklist. Explain that tool calling alone does not establish production readiness.
+
+Check the timetable against the original file to ensure every numbered day, MANAGEMENT addition, and release gate is represented. Flag ambiguities rather than silently omitting information. Return readable Markdown that I can save or paste into a document. Format the plan only; do not start implementation.
+```
+
+Keep this original roadmap alongside the formatted timetable. Update daily implementation records as work happens, so subsequent formatting reflects actual progress.
