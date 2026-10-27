@@ -1,9 +1,11 @@
 import json
+from functools import lru_cache
 from pathlib import Path
 from dotenv import load_dotenv
 from django.core.exceptions import ObjectDoesNotExist
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
+from ai.service import AIDataAccessDisabled, PROTECTED_OPERATION_UNAVAILABLE
 
 load_dotenv()
 
@@ -63,7 +65,10 @@ def format_schema_for_llm(data: dict) -> str:
 SCHEMA_TEXT = format_schema_for_llm(schema_data)
 
 
-llm = ChatGroq(model_name=DEFAULT_MODEL)
+@lru_cache(maxsize=1)
+def get_llm():
+    return ChatGroq(model_name=DEFAULT_MODEL)
+
 
 SQL_PROMPT = ChatPromptTemplate.from_template("""
 You are a PostgreSQL SQL generation assistant for a hospital management system.
@@ -793,8 +798,10 @@ GENERAL_ANSWER_PROMPT = ChatPromptTemplate.from_messages(
         Answer the user's message naturally and helpfully.
 
         Do not query or invent database information.
-        If the user asks for database information, that question should
-        be handled by the database path instead.
+        You have no access to hospital records, private user information, or
+        database operations. If asked for those, explain that access is
+        temporarily unavailable while permission enforcement is implemented.
+        Never claim to have retrieved records or performed an operation.
 
         Keep responses concise.
         """,
@@ -828,16 +835,7 @@ Answer naturally and concisely.
 
 
 def generate_user_answer(question: str, user) -> str:
-    prompt = USER_ANSWER_PROMPT.invoke(
-        {
-            "question": question,
-            "user_context": format_user_context(user),
-        }
-    )
-
-    response = llm.invoke(prompt)
-
-    return response.content.strip()
+    raise AIDataAccessDisabled(PROTECTED_OPERATION_UNAVAILABLE)
 
 
 def generate_general_answer(question: str) -> str:
@@ -847,7 +845,7 @@ def generate_general_answer(question: str) -> str:
         }
     )
 
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
 
     return response.content.strip()
 
@@ -859,22 +857,13 @@ def classify_question(question: str) -> str:
         }
     )
 
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
 
     return response.content.strip().lower()
 
 
 def generate_answer(question: str, result: dict) -> str:
-    prompt = ANSWER_PROMPT.invoke(
-        {
-            "question": question,
-            "result": result,
-        }
-    )
-
-    response = llm.invoke(prompt)
-
-    return response.content.strip()
+    raise AIDataAccessDisabled(PROTECTED_OPERATION_UNAVAILABLE)
 
 
 def format_user_context(user) -> str:
@@ -910,27 +899,5 @@ def format_user_context(user) -> str:
     return "\n".join(lines)
 
 
-def generate_sql(
-    question: str,
-    user=None,
-    query_context: str = "",
-) -> str:
-    user_id = (
-        str(user.pk)
-        if user is not None and user.is_authenticated
-        else "None"
-
-    )
-    prompt = SQL_PROMPT.invoke(
-        {
-            "schema": SCHEMA_TEXT,
-            "question": question,
-            "user_context": format_user_context(user),
-            "query_context": query_context,
-            "user_id":user_id,
-        }
-    )
-
-    response = llm.invoke(prompt)
-
-    return response.content.strip()
+def generate_sql(question: str, user=None, query_context: str = "") -> str:
+    raise AIDataAccessDisabled(PROTECTED_OPERATION_UNAVAILABLE)

@@ -307,3 +307,22 @@ AUDIT_TRUST_X_FORWARDED_FOR = config(
     default=False,
     cast=bool,
 )
+# Browser origins allowed to use public or authenticated AI chat.
+AI_WEBSOCKET_ALLOWED_ORIGINS = csv_config(
+    "AI_WEBSOCKET_ALLOWED_ORIGINS", ",".join(CORS_ALLOWED_ORIGINS)
+)
+AI_CHAT_MAX_MESSAGE_BYTES = 16 * 1024
+
+# Gemini is used only for permission embeddings; Groq remains the chat model.
+GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
+GEMINI_EMBEDDING_MODEL = config("GEMINI_EMBEDDING_MODEL", default="gemini-embedding-001")
+GEMINI_EMBEDDING_DIMENSIONS = config(
+    "GEMINI_EMBEDDING_DIMENSIONS",
+    default=config("EMBEDDING_DIMENSION", default=768, cast=int),
+    cast=int,
+)
+
+# Initial retrieval cutoff, not a calibrated confidence or authorization score.
+PERMISSION_SEARCH_MIN_SIMILARITY = config(
+    "PERMISSION_SEARCH_MIN_SIMILARITY", default=0.5, cast=float,
+)

@@ -1,131 +1,50 @@
+"""Separate public/authenticated workflows with no protected data operations."""
+
 from langgraph.graph import StateGraph, START, END
 
-from ai.state import AgentState
-
+from ai.state import PublicAgentState
 from ai.nodes import (
     classify_question_node,
-    generate_sql_node,
-    execute_sql_node,
-    generate_answer_node,
     generate_general_answer_node,
-    generate_user_answer_node,
-    route_after_sql,
-    sql_validation_error_node,
+    protected_operation_unavailable_node,
 )
 
 
-def route_intent(state: AgentState):
-    return state["intent"]
+def route_intent(state):
+    # Classification only chooses response wording. Even a malicious or wrong
+    # "general" classification cannot reach a database or private-user node.
+    return "general" if state.get("intent") == "general" else "unavailable"
 
 
-graph_builder = StateGraph(AgentState)
+def build_general_only_graph():
+    builder = StateGraph(PublicAgentState)
+    builder.add_node("classify", classify_question_node)
+    builder.add_node("general", generate_general_answer_node)
+    builder.add_node("unavailable", protected_operation_unavailable_node)
+    builder.add_edge(START, "classify")
+    builder.add_conditional_edges("classify", route_intent, {
+        "general": "general",
+        "unavailable": "unavailable",
+    })
+    builder.add_edge("general", END)
+    builder.add_edge("unavailable", END)
+    return builder.compile()
 
 
-graph_builder.add_node(
-    "classify",
-    classify_question_node,
-)
-
-graph_builder.add_node(
-    "sql_validation_error",
-    sql_validation_error_node,
-)
-
-graph_builder.add_node(
-    "generate_sql",
-    generate_sql_node,
-)
-
-graph_builder.add_node(
-    "execute_sql",
-    execute_sql_node,
-)
-
-graph_builder.add_node(
-    "generate_answer",
-    generate_answer_node,
-)
-
-graph_builder.add_node(
-    "generate_general_answer",
-    generate_general_answer_node,
-)
-
-graph_builder.add_node(
-    "generate_user_answer",
-    generate_user_answer_node,
-)
+public_graph = build_general_only_graph()
+authenticated_graph = build_general_only_graph()
+# Preserve the old graph entry point, but it is now general-only too.
+graph = authenticated_graph
 
 
-graph_builder.add_edge(
-    START,
-    "classify",
-)
-
-
-graph_builder.add_conditional_edges(
-    "classify",
-    route_intent,
-    {
-        "user": "generate_user_answer",
-        "general": "generate_general_answer",
-        "database_read": "generate_sql",
-        "database_write": "generate_sql",
-    },
-)
-
-
-graph_builder.add_edge(
-    "generate_sql",
-    "execute_sql",
-)
-
-graph_builder.add_conditional_edges(
-    "execute_sql",
-    route_after_sql,
-    {
-        "valid": "generate_answer",
-        "invalid": "sql_validation_error",
-    },
-)
-
-graph_builder.add_edge(
-    "sql_validation_error",
-    END,
-)
-
-graph_builder.add_edge(
-    "generate_answer",
-    END,
-)
-
-graph_builder.add_edge(
-    "generate_general_answer",
-    END,
-)
-
-graph_builder.add_edge(
-    "generate_user_answer",
-    END,
-)
-
-
-graph = graph_builder.compile()
-
-
-def ask_assistant(question: str, user):
-    print("AI USER:", user)
-
-    print(
-        "AI USER ID:",
-        user.id if user.is_authenticated else None,
+def ask_assistant(question: str, user=None):
+    if not isinstance(question, str) or not question.strip():
+        raise ValueError("A non-empty question is required.")
+    authenticated = bool(
+        user is not None
+        and getattr(user, "is_authenticated", False)
+        and getattr(user, "is_active", False)
     )
-
-    result = graph.invoke(
-        {
-            "question": question,
-            "user": user,
-        }
-    )
-
-    return result
+    workflow = authenticated_graph if authenticated else public_graph
+    # Never give either model path a user object, roles, grants or prior results.
+    return workflow.invoke({"question": question.strip()})

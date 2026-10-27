@@ -1,3 +1,5 @@
+"""Syntax checks only; a valid result never authorizes AI database access."""
+
 import sqlglot
 
 ALLOWED_OPERATIONS = {

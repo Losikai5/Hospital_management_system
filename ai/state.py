@@ -9,3 +9,9 @@ class AgentState(TypedDict):
     result: dict
     answer: str
     intent: str
+
+
+class PublicAgentState(TypedDict):
+    question: str
+    intent: str
+    answer: str

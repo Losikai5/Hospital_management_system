@@ -17,7 +17,7 @@ def get_user(user_id):
     user_model = get_user_model()
     try:
         return user_model.objects.get(pk=user_id, is_active=True)
-    except user_model.DoesNotExist:
+    except (user_model.DoesNotExist, ValueError, TypeError, OverflowError):
         return AnonymousUser()
 
 
@@ -28,15 +28,18 @@ class JwtWebSocketAuthMiddleware(BaseMiddleware):
         scope = dict(scope)
         scope["user"] = AnonymousUser()
 
-        query = parse_qs(scope.get("query_string", b"").decode("utf-8"))
-        raw_token = query.get("token", [None])[0]
+        try:
+            query = parse_qs(scope.get("query_string", b"").decode("utf-8"))
+            raw_token = query.get("token", [None])[0]
+        except (UnicodeDecodeError, ValueError):
+            raw_token = None
 
         if raw_token:
             try:
                 token = AccessToken(raw_token)
                 user_id = token[api_settings.USER_ID_CLAIM]
                 scope["user"] = await get_user(user_id)
-            except (KeyError, TokenError):
+            except (KeyError, TokenError, ValueError, TypeError):
                 # Invalid or expired tokens connect as anonymous users.
                 pass
 

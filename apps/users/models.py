@@ -1,3 +1,6 @@
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from pgvector.django import VectorField
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -18,6 +21,41 @@ class Permission(models.Model):
 
     def __str__(self):
         return self.code
+
+
+class PermissionEmbedding(models.Model):
+    """Derived permission-search data; never a source of authorization grants."""
+
+    permission = models.OneToOneField(
+        Permission,
+        on_delete=models.CASCADE,
+        related_name="embedding",
+    )
+    embedding = VectorField(dimensions=768)
+    model_name = models.CharField(max_length=150)
+    dimensions = models.PositiveIntegerField(
+        default=768,
+        validators=[MinValueValidator(1)],
+    )
+    source_text = models.TextField(
+        help_text="Exact permission text used to generate this embedding.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        super().clean()
+        from ai.embeddings import EmbeddingError, validate_embedding
+
+        if self.dimensions != 768:
+            raise ValidationError({"dimensions": "The vector field requires 768 dimensions."})
+        try:
+            validate_embedding(self.embedding, self.dimensions)
+        except EmbeddingError as error:
+            raise ValidationError({"embedding": str(error)}) from None
+
+    def __str__(self):
+        return f"{self.permission.code} ({self.model_name}, {self.dimensions} dimensions)"
 
 
 class Role(models.Model):
